@@ -282,7 +282,7 @@ static void usage (const char *msg, ...)
 \n\
     this-image prints the name of the currently booted image on stdout.      \n\
 \n\
-    list-images printes the available image configs on stdout.               \n\
+    list-images prints the available image configs on stdout.               \n\
 \n\
     create will initialise the specified config if it does not already exist.\n\
 \n\
