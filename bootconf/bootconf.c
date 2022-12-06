@@ -995,13 +995,13 @@ void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
 
 static cmd_handler cmd_handlers[] =
 {
-    { "selected-image", 0, next_ident , NULL },
     { "dump-config"   , 0, dump_state , NULL },
-    { "this-image"    , 0, show_ident , NULL },
     { "list-images"   , 0, list_images, NULL },
-    { "set-mode"      , 1, set_mode   , save_updated_confs },
-    { "config"        , 0, set_target , save_updated_confs },
     { "create"        , 0, new_target , save_updated_confs },
+    { "config"        , 0, set_target , save_updated_confs },
+    { "set-mode"      , 1, set_mode   , save_updated_confs },
+    { "this-image"    , 0, show_ident , NULL },
+    { "selected-image", 0, next_ident , NULL },
     { NULL }
 };
 
