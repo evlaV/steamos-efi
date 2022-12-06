@@ -118,97 +118,7 @@ void set_other_conf_uint (image_cfg *conf,
     }
 }
 
-int set_entry   (int n, int argc, char **argv, image_cfg *cfg, size_t l);
-int get_entry   (int n, int argc, char **argv, image_cfg *cfg, size_t l);
-int del_entry   (int n, int argc, char **argv, image_cfg *cfg, size_t l);
 
-int show_help   (opt int n,
-                 opt int argc,
-                 opt char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l);
-
-int choose_image (int n,
-                  int argc,
-                  char **argv,
-                  opt image_cfg *cfg,
-                  opt size_t l);
-
-int set_confdir (int n,
-                 int argc,
-                 char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l);
-
-int set_efidir  (int n,
-                 int argc,
-                 char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l);
-
-int set_verbose (opt int n,
-                 opt int argc,
-                 opt char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l);
-
-int no_create (opt int n,
-               opt int argc,
-               opt char **argv,
-               opt image_cfg *cfg,
-               opt size_t l);
-
-static arg_handler arg_handlers[] =
-{
-    { "-h"             , 0, show_help   , ARG_EARLY },
-    { "--help"         , 0, show_help   , ARG_EARLY },
-    { "--image"        , 1, choose_image, ARG_EARLY },
-    { "--conf-dir"     , 1, set_confdir , ARG_EARLY },
-    { "--efi-dir"      , 1, set_efidir  , ARG_EARLY },
-    { "-v"             , 0, set_verbose , ARG_EARLY },
-    { "--verbose"      , 0, set_verbose , ARG_EARLY },
-    { "--no-create"    , 0, no_create   , ARG_EARLY },
-    { "--set"          , 2, set_entry   , ARG_STD   },
-    { "--get"          , 1, get_entry   , ARG_STD   },
-    { "--del"          , 1, del_entry   , ARG_STD   },
-    { NULL }
-};
-
-// ============================================================================
-// preprocessors:
-void show_ident  (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void dump_state  (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void list_images (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void next_ident  (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void set_target  (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void new_target  (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params);
-void set_mode    (image_cfg *cfg_array, size_t limit,
-                  int argc, char **argv, uint params);
-
-// postprocessors:
-void save_updated_confs (image_cfg *cfg_array, size_t limit);
-
-static cmd_handler cmd_handlers[] =
-{
-    { "selected-image", 0, next_ident , NULL },
-    { "dump-config"   , 0, dump_state , NULL },
-    { "this-image"    , 0, show_ident , NULL },
-    { "list-images"   , 0, list_images, NULL },
-    { "set-mode"      , 1, set_mode   , save_updated_confs },
-    { "config"        , 0, set_target , save_updated_confs },
-    { "create"        , 0, new_target , save_updated_confs },
-    { NULL }
-};
-
-// ============================================================================
-
-opt
 static int parse_uint_string (const char *str, uint64_t *num)
 {
     char *nend;
@@ -832,6 +742,99 @@ void list_images (image_cfg *cfg_array, size_t limit,
     }
 }
 
+void new_target (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
+{
+    const char *id = NULL;
+    int new_target = -1;
+
+    if( target_ident[ 0 ] )
+        id = &target_ident[ 0 ];
+    else if( selected_image >= 0 && cfg_array[ selected_image ].loaded )
+        id = &cfg_array[ selected_image ].ident[ 0 ];
+
+    if( !id || !*id )
+        error( EINVAL, "No image specified\n" );
+
+    for( size_t i = 0; i < limit; i++ )
+    {
+        if( !cfg_array[ i ].loaded )
+            continue;
+
+        if( strcmp( &cfg_array[ i ].ident[ 0 ], id ) )
+            continue;
+
+        new_target = i;
+        break;
+    }
+
+    if( new_target >= 0 )
+        error( EEXIST, "Config #%d for %s exists\n", selected_image, id );
+
+    for( size_t i = 0; i < MAX_BOOTCONFS; i++ )
+    {
+        image_cfg *cfg = NULL;
+
+        if( cfg_array[ i ].loaded )
+            continue;
+
+        cfg = &cfg_array[ i ];
+
+        strncpy( &cfg->ident[ 0 ], id, sizeof( cfg->ident ) );
+        cfg->ident[ sizeof(cfg->ident) - 1 ] = '\0';
+        cfg->fd = -1;
+        cfg->loaded = 1;
+        cfg->altered = 1;
+        cfg->disabled = 0;
+        cfg->cfg = new_config();
+
+        selected_image = i;
+        break;
+    }
+
+    if( selected_image < 0 )
+        error( ENOSPC, "Cannot add new config: Limit reached\n" );
+}
+
+void set_target (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
+{
+    const char *id = NULL;
+
+    if( target_ident[ 0 ] )
+        id = &target_ident[ 0 ];
+    else
+        id = self_ident( cfg_array, limit );
+
+    if( !id || !*id )
+        error( EINVAL, "No image specified and current image not identifiable\n" );
+
+    // Make sure we only pick existing targets.
+    // (it's possible for a nonexistent target tro be selected here because
+    // new_target needs to be able to create them)
+    selected_image = -1;
+
+    for( size_t i = 0; i < limit; i++ )
+    {
+        if( !cfg_array[ i ].loaded )
+            continue;
+
+        if( strcmp( &cfg_array[ i ].ident[ 0 ], id ) )
+            continue;
+
+        selected_image = i;
+        break;
+    }
+
+    if( selected_image < 0 )
+    {
+        if( create_missing == 0 )
+            error( ENOENT, "Image config for %s does not exist\n", id );
+
+        new_target( cfg_array, limit, argc, argv, params );
+    }
+}
+
 // NOTE: preprocessors get a shifted argc/argv with the command at #0
 void set_mode (image_cfg *cfg_array, size_t limit,
                int argc, char **argv, uint params)
@@ -937,100 +940,6 @@ void set_mode (image_cfg *cfg_array, size_t limit,
     }
 }
 
-void set_target (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
-{
-    const char *id = NULL;
-
-    if( target_ident[ 0 ] )
-        id = &target_ident[ 0 ];
-    else
-        id = self_ident( cfg_array, limit );
-
-    if( !id || !*id )
-        error( EINVAL, "No image specified and current image not identifiable\n" );
-
-    // Make sure we only pick existing targets.
-    // (it's possible for a nonexistent target tro be selected here because
-    // new_target needs to be able to create them)
-    selected_image = -1;
-
-    for( size_t i = 0; i < limit; i++ )
-    {
-        if( !cfg_array[ i ].loaded )
-            continue;
-
-        if( strcmp( &cfg_array[ i ].ident[ 0 ], id ) )
-            continue;
-
-        selected_image = i;
-        break;
-    }
-
-    if( selected_image < 0 )
-    {
-        if( create_missing == 0 )
-            error( ENOENT, "Image config for %s does not exist\n", id );
-
-        new_target( cfg_array, limit, argc, argv, params );
-    }
-}
-
-void new_target (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
-{
-    const char *id = NULL;
-    int new_target = -1;
-
-    if( target_ident[ 0 ] )
-        id = &target_ident[ 0 ];
-    else if( selected_image >= 0 && cfg_array[ selected_image ].loaded )
-        id = &cfg_array[ selected_image ].ident[ 0 ];
-
-    if( !id || !*id )
-        error( EINVAL, "No image specified\n" );
-
-    for( size_t i = 0; i < limit; i++ )
-    {
-        if( !cfg_array[ i ].loaded )
-            continue;
-
-        if( strcmp( &cfg_array[ i ].ident[ 0 ], id ) )
-            continue;
-
-        new_target = i;
-        break;
-    }
-
-    if( new_target >= 0 )
-        error( EEXIST, "Config #%d for %s exists\n", selected_image, id );
-
-    for( size_t i = 0; i < MAX_BOOTCONFS; i++ )
-    {
-        image_cfg *cfg = NULL;
-
-        if( cfg_array[ i ].loaded )
-            continue;
-
-        cfg = &cfg_array[ i ];
-
-        strncpy( &cfg->ident[ 0 ], id, sizeof( cfg->ident ) );
-        cfg->ident[ sizeof(cfg->ident) - 1 ] = '\0';
-        cfg->fd = -1;
-        cfg->loaded = 1;
-        cfg->altered = 1;
-        cfg->disabled = 0;
-        cfg->cfg = new_config();
-
-        selected_image = i;
-        break;
-    }
-
-    if( selected_image < 0 )
-        error( ENOSPC, "Cannot add new config: Limit reached\n" );
-}
-
-
 void show_ident (image_cfg *cfg_array, size_t limit,
                  opt int argc, opt char **argv, opt uint params)
 {
@@ -1083,6 +992,18 @@ void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
             error( -e, "Save config '%s' failed", &conf->ident[ 0 ] );
     }
 }
+
+static cmd_handler cmd_handlers[] =
+{
+    { "selected-image", 0, next_ident , NULL },
+    { "dump-config"   , 0, dump_state , NULL },
+    { "this-image"    , 0, show_ident , NULL },
+    { "list-images"   , 0, list_images, NULL },
+    { "set-mode"      , 1, set_mode   , save_updated_confs },
+    { "config"        , 0, set_target , save_updated_confs },
+    { "create"        , 0, new_target , save_updated_confs },
+    { NULL }
+};
 
 static cmd_handler *preprocess_cmd (int argc,
                                     char **argv,
@@ -1149,6 +1070,21 @@ static cmd_handler *postprocess_cmd (cmd_handler *cmd,
 }
 
 // =========================================================================
+static arg_handler arg_handlers[] =
+{
+    { "-h"             , 0, show_help   , ARG_EARLY },
+    { "--help"         , 0, show_help   , ARG_EARLY },
+    { "--image"        , 1, choose_image, ARG_EARLY },
+    { "--conf-dir"     , 1, set_confdir , ARG_EARLY },
+    { "--efi-dir"      , 1, set_efidir  , ARG_EARLY },
+    { "-v"             , 0, set_verbose , ARG_EARLY },
+    { "--verbose"      , 0, set_verbose , ARG_EARLY },
+    { "--no-create"    , 0, no_create   , ARG_EARLY },
+    { "--set"          , 2, set_entry   , ARG_STD   },
+    { "--get"          , 1, get_entry   , ARG_STD   },
+    { "--del"          , 1, del_entry   , ARG_STD   },
+    { NULL }
+};
 
 static int process_early_cmdline_args (int x, int argc, char **argv, size_t lim)
 {
