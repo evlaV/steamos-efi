@@ -1068,7 +1068,7 @@ int new_target (image_cfg *cfg_array, size_t limit,
 
     if( target_ident[ 0 ] )
         id = &target_ident[ 0 ];
-    else if( selected_image >= 0 && &cfg_array[ selected_image ].loaded )
+    else if( selected_image >= 0 && cfg_array[ selected_image ].loaded )
         id = &cfg_array[ selected_image ].ident[ 0 ];
 
     if( !id || !*id )
