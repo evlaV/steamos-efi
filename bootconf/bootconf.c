@@ -975,7 +975,7 @@ static void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
     }
 }
 
-static cmd_handler cmd_handlers[] =
+static const cmd_handler cmd_handlers[] =
 {
     { "dump-config"   , 0, dump_state , NULL },
     { "list-images"   , 0, list_images, NULL },
@@ -987,12 +987,12 @@ static cmd_handler cmd_handlers[] =
     { NULL }
 };
 
-static cmd_handler *preprocess_cmd (int argc,
+static const cmd_handler *preprocess_cmd (int argc,
                                     char **argv,
                                     image_cfg *cfg_array,
                                     size_t limit)
 {
-    cmd_handler *handler = NULL;
+    const cmd_handler *handler = NULL;
 
     for( int i = 1; i < argc; i++ )
     {
@@ -1038,9 +1038,9 @@ static cmd_handler *preprocess_cmd (int argc,
     usage( "Unknown command or command not found" );
 }
 
-static cmd_handler *postprocess_cmd (cmd_handler *cmd,
-                                     image_cfg *cfg_array,
-                                     size_t limit)
+static const cmd_handler *postprocess_cmd (const cmd_handler *cmd,
+                                           image_cfg *cfg_array,
+                                           size_t limit)
 {
     if( !cmd )
         return NULL;
@@ -1376,7 +1376,7 @@ int main (int argc, char **argv)
 {
     const size_t limit = sizeof(found) / sizeof(image_cfg);
     size_t loaded = 0;
-    cmd_handler *cmd = NULL;
+    const cmd_handler *cmd = NULL;
 
     atexit( exit_handler );
 
