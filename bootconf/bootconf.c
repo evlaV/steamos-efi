@@ -37,9 +37,9 @@ typedef struct
     int altered;
 } image_cfg;
 
-typedef int (*cmd_func) (image_cfg *conf, size_t limit,
-                         int argc, char **argv, uint params);
-typedef int (*post_func) (image_cfg *conf, size_t limit);
+typedef void (*cmd_func) (image_cfg *conf, size_t limit,
+                          int argc, char **argv, uint params);
+typedef void (*post_func) (image_cfg *conf, size_t limit);
 
 typedef int (*arg_func) (int n, int max, char **argv,
                          image_cfg *conf, size_t limit);
@@ -58,7 +58,6 @@ typedef struct
     uint params;
     cmd_func preprocess;
     post_func postprocess;
-    int status;
 } cmd_handler;
 
 static uint verbose = 0;
@@ -177,41 +176,33 @@ static arg_handler arg_handlers[] =
 
 // ============================================================================
 // preprocessors:
-int show_ident  (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int dump_state  (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int list_images (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int next_ident  (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int set_target  (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int new_target  (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params);
-int set_mode    (image_cfg *cfg_array, size_t limit,
-                 int argc, char **argv, uint params);
+void show_ident  (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void dump_state  (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void list_images (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void next_ident  (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void set_target  (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void new_target  (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params);
+void set_mode    (image_cfg *cfg_array, size_t limit,
+                  int argc, char **argv, uint params);
 
 // postprocessors:
-int save_updated_confs (image_cfg *cfg_array, size_t limit);
-
-typedef enum
-{
-    CMD_NOT_CALLED = 0,
-    CMD_PREPROCESSED,
-    CMD_POSTPROCESSED,
-    CMD_FAILED,
-} cmd_status;
+void save_updated_confs (image_cfg *cfg_array, size_t limit);
 
 static cmd_handler cmd_handlers[] =
 {
-    { "selected-image", 0, next_ident , NULL, CMD_NOT_CALLED },
-    { "dump-config"   , 0, dump_state , NULL, CMD_NOT_CALLED },
-    { "this-image"    , 0, show_ident , NULL, CMD_NOT_CALLED },
-    { "list-images"   , 0, list_images, NULL, CMD_NOT_CALLED },
-    { "set-mode"      , 1, set_mode   , save_updated_confs, CMD_NOT_CALLED },
-    { "config"        , 0, set_target , save_updated_confs, CMD_NOT_CALLED },
-    { "create"        , 0, new_target , save_updated_confs, CMD_NOT_CALLED },
+    { "selected-image", 0, next_ident , NULL },
+    { "dump-config"   , 0, dump_state , NULL },
+    { "this-image"    , 0, show_ident , NULL },
+    { "list-images"   , 0, list_images, NULL },
+    { "set-mode"      , 1, set_mode   , save_updated_confs },
+    { "config"        , 0, set_target , save_updated_confs },
+    { "create"        , 0, new_target , save_updated_confs },
     { NULL }
 };
 
@@ -789,8 +780,8 @@ static void dump_cfg (image_cfg *conf)
     }
 }
 
-int dump_state (image_cfg *cfg_array, size_t limit,
-                opt int argc, opt char **argv, opt uint params)
+void dump_state (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
 {
     size_t i = 0;
     image_cfg *conf = NULL;
@@ -816,12 +807,10 @@ int dump_state (image_cfg *cfg_array, size_t limit,
 
     if( !count && target_ident[ 0 ]  )
         error( ENOENT, "No config for '%s' found", &target_ident[ 0 ] );
-
-    return CMD_PREPROCESSED;
 }
 
-int list_images (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+void list_images (image_cfg *cfg_array, size_t limit,
+                  opt int argc, opt char **argv, opt uint params)
 {
     ssize_t i = 0;
     image_cfg *conf = NULL;
@@ -841,13 +830,11 @@ int list_images (image_cfg *cfg_array, size_t limit,
                 &conf->ident[0],
                 (i == selected_image) ? '*' :  ' ' );
     }
-
-    return CMD_PREPROCESSED;;
 }
 
 // NOTE: preprocessors get a shifted argc/argv with the command at #0
-int set_mode (image_cfg *cfg_array, size_t limit,
-              int argc, char **argv, uint params)
+void set_mode (image_cfg *cfg_array, size_t limit,
+               int argc, char **argv, uint params)
 {
     const char *action;
     unsigned long max = 0;
@@ -892,10 +879,8 @@ int set_mode (image_cfg *cfg_array, size_t limit,
 
         set_timestamped_note( cfg, "bootconf mode: shutdown" );
         chosen->altered = true;
-        return 1;
     }
-
-    if( strcmp( action, "reboot" ) == 0 )
+    else if( strcmp( action, "reboot" ) == 0 )
     {
         // make sure this conifg selects its own image:
         set_conf_uint( cfg, "boot-other", 0 );
@@ -906,10 +891,8 @@ int set_mode (image_cfg *cfg_array, size_t limit,
 
         set_timestamped_note( cfg, "bootconf mode: reboot (self)" );
         chosen->altered = true;
-        return 1;
     }
-
-    if( strcmp( action, "reboot-other" ) == 0 )
+    else if( strcmp( action, "reboot-other" ) == 0 )
     {
         // this config requests that the next highest prio image be booted instead
         set_conf_uint( cfg, "boot-other", 1 );
@@ -924,10 +907,8 @@ int set_mode (image_cfg *cfg_array, size_t limit,
         set_timestamped_note( cfg, "bootconf mode: reboot (other)" );
 
         chosen->altered = true;
-        return 1;
     }
-
-    if( strcmp( action, "first-boot" ) == 0 )
+    else if( strcmp( action, "first-boot" ) == 0 )
     {
         // clear all the interesting flags and values on this image
         // and set it to the highest priority (as if it were being booted
@@ -939,10 +920,8 @@ int set_mode (image_cfg *cfg_array, size_t limit,
         set_conf_uint( cfg, "boot-requested-at", stamp );
         set_timestamped_note( cfg, "bootconf mode: first-boot" );
         chosen->altered = true;
-        return 1;
     }
-
-    if( strcmp( action, "booted" ) == 0 )
+    else if( strcmp( action, "booted" ) == 0 )
     {
         uint64_t nth = get_conf_uint( cfg, "boot-count" );
         set_conf_uint( cfg, "invalid"      , 0 );
@@ -951,14 +930,15 @@ int set_mode (image_cfg *cfg_array, size_t limit,
         set_conf_stamp_time( cfg, "boot-time", time( NULL ) );
         set_timestamped_note( cfg, "bootconf mode: boot-ok" );
         chosen->altered = true;
-        return 1;
     }
-
-    usage( "Unknown --action value '%s'", action );
+    else
+    {
+        usage( "Unknown --action value '%s'", action );
+    }
 }
 
-int set_target (image_cfg *cfg_array, size_t limit,
-                opt int argc, opt char **argv, opt uint params)
+void set_target (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
 {
     const char *id = NULL;
 
@@ -994,12 +974,10 @@ int set_target (image_cfg *cfg_array, size_t limit,
 
         new_target( cfg_array, limit, argc, argv, params );
     }
-
-    return CMD_PREPROCESSED;
 }
 
-int new_target (image_cfg *cfg_array, size_t limit,
-                opt int argc, opt char **argv, opt uint params)
+void new_target (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
 {
     const char *id = NULL;
     int new_target = -1;
@@ -1050,13 +1028,11 @@ int new_target (image_cfg *cfg_array, size_t limit,
 
     if( selected_image < 0 )
         error( ENOSPC, "Cannot add new config: Limit reached\n" );
-
-    return CMD_PREPROCESSED;
 }
 
 
-int show_ident (image_cfg *cfg_array, size_t limit,
-                opt int argc, opt char **argv, opt uint params)
+void show_ident (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
 {
     char *ident = self_ident( cfg_array, limit );
 
@@ -1064,15 +1040,11 @@ int show_ident (image_cfg *cfg_array, size_t limit,
     {
         printf( "%s\n", ident );
         free( ident );
-
-        return 1;
     }
-
-    return CMD_PREPROCESSED;
 }
 
-int next_ident (image_cfg *cfg_array, size_t limit,
-                opt int argc, opt char **argv, opt uint params)
+void next_ident (image_cfg *cfg_array, size_t limit,
+                 opt int argc, opt char **argv, opt uint params)
 {
     if( !cfg_array )
         error( EINVAL, "No config data" );
@@ -1085,12 +1057,10 @@ int next_ident (image_cfg *cfg_array, size_t limit,
                selected_image, limit );
 
     printf( "%s\n", &cfg_array[ selected_image ].ident[ 0 ] );
-
-    return CMD_PREPROCESSED;
 }
 
 // ============================================================================
-int save_updated_confs (image_cfg *cfg_array, opt size_t limit)
+void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
 {
     size_t i = 0;
     image_cfg *conf = NULL;
@@ -1112,8 +1082,6 @@ int save_updated_confs (image_cfg *cfg_array, opt size_t limit)
         if( e < 0 )
             error( -e, "Save config '%s' failed", &conf->ident[ 0 ] );
     }
-
-    return CMD_POSTPROCESSED;
 }
 
 static cmd_handler *preprocess_cmd (int argc,
@@ -1141,11 +1109,8 @@ static cmd_handler *preprocess_cmd (int argc,
             // 0   1        2        | argc = 3
             // CMD CMDPARAM ...
             if( handler->preprocess )
-                handler->status =
-                  handler->preprocess( cfg_array, limit,
-                                       argc - i, argv + i, handler->params );
-            else
-                handler->status = CMD_PREPROCESSED;
+                handler->preprocess( cfg_array, limit,
+                                     argc - i, argv + i, handler->params );
 
             // scrub the consumed value from the command line:
             *command = '\0';
@@ -1162,9 +1127,8 @@ static cmd_handler *preprocess_cmd (int argc,
             continue;
 
         if( handler->preprocess )
-            handler->status =
-              handler->preprocess( cfg_array, limit,
-                                   argc, argv, handler->params );
+            handler->preprocess( cfg_array, limit,
+                                 argc, argv, handler->params );
         return handler;
     }
 
@@ -1178,13 +1142,8 @@ static cmd_handler *postprocess_cmd (cmd_handler *cmd,
     if( !cmd )
         return NULL;
 
-    if( !cmd->postprocess )
-    {
-        cmd->status = CMD_POSTPROCESSED;
-        return cmd;
-    }
-
-    cmd->status = cmd->postprocess( cfg_array, limit );
+    if( cmd->postprocess )
+        cmd->postprocess( cfg_array, limit );
 
     return cmd;
 }
