@@ -272,8 +272,7 @@ static void usage (const char *msg, ...)
     selected-image                                                           \n\
     this-image                                                               \n\
     list-images                                                              \n\
-    set-mode <update|update-other|shutdown|reboot|reboot-other|              \n\
-              booted|first-boot>                                             \n\
+    set-mode <shutdown|reboot|reboot-other|booted|first-boot>                \n\
     config [--no-create] [--set KEY VAL] [--del KEY] [--get KEY]             \n\
     create --image X [--set KEY VAL] ...                                     \n\
 \n\
@@ -892,48 +891,6 @@ int set_mode (image_cfg *cfg_array, size_t limit,
     action = strdupa( argv[ 1 ] );
     // scrub the consumed argument:
     *argv[ 1 ] = '\0';
-
-    // to update another partition we must NOT be booted into it, ie
-    // we want to start with _this_ partition booted:
-    if( strcmp( action, "update-other" ) == 0 )
-    {
-        // make sure this config selects itself for boot:
-        set_conf_uint( cfg, "boot-other", 0 );
-
-        // make sure it comes up in update mode:
-        set_conf_uint( cfg, "update",     1 );
-
-        // make this the config with the highest priority:
-        set_conf_uint( cfg, "boot-requested-at", stamp );
-        set_conf_uint( cfg, "image-invalid", 0 );
-
-        set_timestamped_note( cfg, "bootconf mode: update (other)" );
-        chosen->altered = true;
-        return 1;
-    }
-
-    // similarly to update this partition we must boot into some other partition:
-    if( strcmp( action, "update" ) == 0 )
-    {
-        // make this config ask for a different image to be booted:
-        set_conf_uint( cfg, "boot-other", 1 );
-
-        // make sure the next boot is in update mode:
-        set_conf_uint( cfg, "update",     1 );
-
-        // make this the config with the highest priority:
-        set_conf_uint( cfg, "boot-requested-at", stamp );
-        set_conf_uint( cfg, "image-invalid", 0 );
-
-        // make sure no other configs have boot-other set, so that when we
-        // boot the next highest priority image we don't bounce along the
-        // boot order to the one after it:
-        set_other_conf_uint( cfg_array, limit, selected_image, "boot-other", 0 );
-
-        set_timestamped_note( cfg, "bootconf mode: update (self)" );
-        chosen->altered = true;
-        return 1;
-    }
 
     if( strcmp( action, "shutdown" ) == 0 )
     {

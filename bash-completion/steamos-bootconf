@@ -72,7 +72,7 @@ _steamos-bootconf()
                     ;;
                 --mode)
                     if [[ "$args" -eq 3 ]]; then
-                        COMPREPLY=($(compgen -W "update update-other shutdown reboot reboot-other booted" -- "$cur"))
+                        COMPREPLY=($(compgen -W "shutdown reboot reboot-other booted" -- "$cur"))
                     fi
                     ;;
             esac
