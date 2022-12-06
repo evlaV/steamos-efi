@@ -778,25 +778,15 @@ cleanup:
 }
 
 // ============================================================================
-static int dump_cfg (image_cfg *conf)
+static void dump_cfg (image_cfg *conf)
 {
-    int i = 0;
-
-    if( !conf )
-        return 0;
-
-    if( !conf->cfg )
-        return 0;
-
-    for( i = 0; conf && conf->cfg[ i ].type != cfg_end; i++ )
+    for(int i = 0; conf->cfg[ i ].type != cfg_end; i++ )
     {
         printf( "%s\t%s\t%s\n",
                 &conf->ident[ 0 ],
                 conf->cfg[ i ].name,
                 (char *) conf->cfg[ i ].value.string.bytes ?: "-UNSET-" );
     }
-
-    return CMD_PREPROCESSED;
 }
 
 int dump_state (image_cfg *cfg_array, size_t limit,
@@ -818,7 +808,10 @@ int dump_state (image_cfg *cfg_array, size_t limit,
             if( strcmp( &target_ident[ 0 ], &conf->ident[0]) != 0 )
                 continue;
 
-        count += dump_cfg( conf );
+        if( conf->cfg ) {
+            dump_cfg( conf );
+            count++;
+        }
     }
 
     if( !count && target_ident[ 0 ]  )
