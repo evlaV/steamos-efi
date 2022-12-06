@@ -115,7 +115,6 @@ static void set_other_conf_uint(image_cfg *conf, size_t lim, size_t ignore,
     }
 }
 
-
 static int parse_uint_string (const char *str, uint64_t *num)
 {
     char *nend;
@@ -1052,7 +1051,7 @@ static const cmd_handler *postprocess_cmd (const cmd_handler *cmd,
 }
 
 // =========================================================================
-static arg_handler arg_handlers[] =
+static const arg_handler arg_handlers[] =
 {
     { "-h"             , 0, show_help   , ARG_EARLY },
     { "--help"         , 0, show_help   , ARG_EARLY },
@@ -1070,7 +1069,7 @@ static arg_handler arg_handlers[] =
 
 static int process_early_cmdline_args (int x, int argc, char **argv, size_t lim)
 {
-    arg_handler *handler = NULL;
+    const arg_handler *handler = NULL;
 
     for( handler = &arg_handlers[ 0 ]; handler->cmd; handler++ )
     {
@@ -1094,7 +1093,7 @@ static int process_early_cmdline_args (int x, int argc, char **argv, size_t lim)
 static int process_cmdline_arg (int x, int argc, char **argv,
                                 image_cfg *cfg, size_t loaded)
 {
-    arg_handler *handler = NULL;
+    const arg_handler *handler = NULL;
 
     for( handler = &arg_handlers[ 0 ]; handler->cmd; handler++ )
     {
