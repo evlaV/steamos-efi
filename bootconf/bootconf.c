@@ -487,66 +487,6 @@ static int set_timestamped_note (cfg_entry *cfg, const char *note)
     return rv;
 }
 
-opt
-static unsigned long timestamp_to_datestamp (unsigned long hhmm,
-                                             unsigned long after)
-{
-    time_t tloc = 0;
-    struct tm *now;
-    unsigned long hhmm_now;
-    unsigned long stamp;
-
-    // when is an integer but it's actually an HHMM timestamp
-    // we'd use time_t values and seconds but EFI doesn't have
-    // decent time API so we have to calculate YYYYmmDDHHMMSS
-    // style integer stamps like a 14th century peasant.
-    if( hhmm >= 2359 )
-        return hhmm;
-
-    int mm = hhmm % 100;
-    int hh = (hhmm - mm) / 100;
-
-    time( &tloc );
-    now = localtime( &tloc );
-    hhmm_now = (now->tm_hour * 100) + now->tm_min;
-
-    // easy case, the time requested, interpreted as a local time in the
-    // current day, is later than the current local time:
-    if( hhmm > hhmm_now )
-    {
-        now->tm_hour = hh;
-        now->tm_min  = mm;
-        now->tm_sec  = 0;
-        stamp = structtm_to_stamp( now );
-    }
-    else
-    {
-        // jump to the next day:
-        tloc += 86400;
-        now = localtime( &tloc );
-        now->tm_hour = hh;
-        now->tm_min  = mm;
-        now->tm_sec  = 0;
-        stamp = structtm_to_stamp( now );
-    }
-
-    // if we must be fter a certain time but we aren't, jump another
-    // 24 hours into the future:
-    if( stamp < after )
-    {
-        tloc += 86400;
-        now = localtime( &tloc );
-        now->tm_hour = hh;
-        now->tm_min  = mm;
-        now->tm_sec  = 0;
-    }
-
-    tloc = mktime( now );
-    now  = gmtime( &tloc );
-
-    return structtm_to_stamp( now );
-}
-
 static void *mmap_path_at (DIR *efidir, const char *path, size_t *mapsize)
 {
     int fd = -1;

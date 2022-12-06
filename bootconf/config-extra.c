@@ -134,7 +134,7 @@ uint64_t set_conf_stamp (const cfg_entry *cfg, const char *name, uint64_t val)
     return set_conf_uint (cfg, name, val);
 }
 
-uint64_t structtm_to_stamp (const struct tm *when)
+static uint64_t structtm_to_stamp (const struct tm *when)
 {
     return ( when->tm_sec                     +
              when->tm_min           * 100         +
