@@ -71,7 +71,7 @@ static char *confdir_path = NULL;
 static char *efidir_path = NULL;
 static image_cfg found[MAX_BOOTCONFS] = { 0 };
 
-unsigned long get_conf_uint_highest (image_cfg *conf, char *k, size_t lim)
+static unsigned long get_conf_uint_highest(image_cfg *conf, char *k, size_t lim)
 {
     size_t i;
     unsigned long max = 0;
@@ -92,11 +92,8 @@ unsigned long get_conf_uint_highest (image_cfg *conf, char *k, size_t lim)
     return max;
 }
 
-void set_other_conf_uint (image_cfg *conf,
-                          size_t lim,
-                          size_t ignore,
-                          char *key,
-                          uint64_t val)
+static void set_other_conf_uint(image_cfg *conf, size_t lim, size_t ignore,
+                                char *key, uint64_t val)
 {
     for( size_t i = 0 ; i < lim; i++ )
     {
@@ -227,21 +224,15 @@ static void usage (const char *msg, ...)
 
 // =========================================================================
 // arg handlers (of type arg_func, see above)
-int show_help  (opt int n,
-                opt int argc,
-                opt char **argv,
-                opt image_cfg *cfg,
-                opt size_t l)
+static int show_help  (opt int n, opt int argc, opt char **argv,
+                       opt image_cfg *cfg, opt size_t l)
 {
     usage( NULL );
     return 0;
 }
 
-int choose_image (int n,
-                  int argc,
-                  char **argv,
-                  opt image_cfg *cfg,
-                  opt size_t l)
+static int choose_image (int n, int argc, char **argv,
+                         opt image_cfg *cfg, opt size_t lim)
 {
     if( n + 1 >= argc )
         usage( "Error: %s requires an argument", argv[ n ] );
@@ -260,11 +251,8 @@ int choose_image (int n,
     return 1;
 }
 
-int set_confdir (int n,
-                 int argc,
-                 char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l)
+static int set_confdir (int n, int argc, char **argv,
+                        opt image_cfg *cfg, opt size_t lim)
 {
     if( n + 1 >= argc )
         usage( "Error: %s requires an argument", argv[ n ] );
@@ -293,11 +281,8 @@ int set_confdir (int n,
     return 1;
 }
 
-int set_efidir (int n,
-                int argc,
-                char **argv,
-                opt image_cfg *cfg,
-                opt size_t l)
+static int set_efidir (int n, int argc, char **argv,
+                       opt image_cfg *cfg, opt size_t lim)
 {
     if( n + 1 >= argc )
         usage( "Error: %s requires an argument", argv[ n ] );
@@ -326,29 +311,24 @@ int set_efidir (int n,
     return 1;
 }
 
-int set_verbose (opt int n,
-                 opt int argc,
-                 opt char **argv,
-                 opt image_cfg *cfg,
-                 opt size_t l)
+static int set_verbose (opt int n, opt int argc, opt char **argv,
+                        opt image_cfg *cfg, opt size_t lim)
 {
     verbose++;
 
     return 0;
 }
 
-int no_create (opt int n,
-               opt int argc,
-               opt char **argv,
-               opt image_cfg *cfg,
-               opt size_t l)
+static int no_create (opt int n, opt int argc, opt char **argv,
+                      opt image_cfg *cfg, opt size_t lim)
 {
     create_missing = 0;
 
     return 0;
 }
 
-int set_entry (int n, int argc, char **argv, image_cfg *cfg, opt size_t lim)
+static int set_entry (int n, int argc, char **argv,
+                      image_cfg *cfg, opt size_t lim)
 {
     image_cfg *tgt = NULL;
 
@@ -417,7 +397,8 @@ int set_entry (int n, int argc, char **argv, image_cfg *cfg, opt size_t lim)
     return 1;
 }
 
-int get_entry (int n, int argc, char **argv, image_cfg *cfg, opt size_t lim)
+static int get_entry (int n, int argc, char **argv,
+                      image_cfg *cfg, opt size_t lim)
 {
     char buf[1024] = "";
     ssize_t out = 0;
@@ -458,7 +439,8 @@ int get_entry (int n, int argc, char **argv, image_cfg *cfg, opt size_t lim)
     return 1;
 }
 
-int del_entry (int n, int argc, char **argv, image_cfg *cfg, opt size_t lim)
+static int del_entry (int n, int argc, char **argv,
+                      image_cfg *cfg, opt size_t lim)
 {
 
     image_cfg *tgt = NULL;
@@ -690,8 +672,8 @@ static void dump_cfg (image_cfg *conf)
     }
 }
 
-void dump_state (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+static void dump_state (image_cfg *cfg_array, size_t limit,
+                        opt int argc, opt char **argv, opt uint params)
 {
     size_t i = 0;
     image_cfg *conf = NULL;
@@ -719,8 +701,8 @@ void dump_state (image_cfg *cfg_array, size_t limit,
         error( ENOENT, "No config for '%s' found", &target_ident[ 0 ] );
 }
 
-void list_images (image_cfg *cfg_array, size_t limit,
-                  opt int argc, opt char **argv, opt uint params)
+static void list_images (image_cfg *cfg_array, size_t limit,
+                         opt int argc, opt char **argv, opt uint params)
 {
     ssize_t i = 0;
     image_cfg *conf = NULL;
@@ -742,8 +724,8 @@ void list_images (image_cfg *cfg_array, size_t limit,
     }
 }
 
-void new_target (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+static void new_target (image_cfg *cfg_array, size_t limit,
+                        opt int argc, opt char **argv, opt uint params)
 {
     const char *id = NULL;
     int new_target = -1;
@@ -796,8 +778,8 @@ void new_target (image_cfg *cfg_array, size_t limit,
         error( ENOSPC, "Cannot add new config: Limit reached\n" );
 }
 
-void set_target (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+static void set_target (image_cfg *cfg_array, size_t limit,
+                        opt int argc, opt char **argv, opt uint params)
 {
     const char *id = NULL;
 
@@ -836,8 +818,8 @@ void set_target (image_cfg *cfg_array, size_t limit,
 }
 
 // NOTE: preprocessors get a shifted argc/argv with the command at #0
-void set_mode (image_cfg *cfg_array, size_t limit,
-               int argc, char **argv, uint params)
+static void set_mode (image_cfg *cfg_array, size_t limit,
+                      int argc, char **argv, uint params)
 {
     const char *action;
     unsigned long max = 0;
@@ -940,8 +922,8 @@ void set_mode (image_cfg *cfg_array, size_t limit,
     }
 }
 
-void show_ident (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+static void show_ident (image_cfg *cfg_array, size_t limit,
+                        opt int argc, opt char **argv, opt uint params)
 {
     char *ident = self_ident( cfg_array, limit );
 
@@ -952,8 +934,8 @@ void show_ident (image_cfg *cfg_array, size_t limit,
     }
 }
 
-void next_ident (image_cfg *cfg_array, size_t limit,
-                 opt int argc, opt char **argv, opt uint params)
+static void next_ident (image_cfg *cfg_array, size_t limit,
+                        opt int argc, opt char **argv, opt uint params)
 {
     if( !cfg_array )
         error( EINVAL, "No config data" );
@@ -969,7 +951,7 @@ void next_ident (image_cfg *cfg_array, size_t limit,
 }
 
 // ============================================================================
-void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
+static void save_updated_confs (image_cfg *cfg_array, opt size_t limit)
 {
     size_t i = 0;
     image_cfg *conf = NULL;
@@ -1357,7 +1339,7 @@ static int select_image_config (image_cfg *conf, size_t loaded)
 
 // ============================================================================
 
-void print_skeleton ()
+static void print_skeleton(void)
 {
     cfg_entry *blank = new_config();
 
@@ -1367,7 +1349,7 @@ void print_skeleton ()
 }
 
 // ============================================================================
-void exit_handler (void)
+static void exit_handler(void)
 {
     if( confdir )
     {
