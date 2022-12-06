@@ -897,9 +897,6 @@ int set_mode (image_cfg *cfg_array, size_t limit,
         // when we get restarted, come back to this image:
         set_conf_uint( cfg, "boot-other", 0 );
 
-        // don't come back in update mode:
-        set_conf_uint( cfg, "update",     0 );
-
         set_timestamped_note( cfg, "bootconf mode: shutdown" );
         chosen->altered = true;
         return 1;
@@ -909,10 +906,6 @@ int set_mode (image_cfg *cfg_array, size_t limit,
     {
         // make sure this conifg selects its own image:
         set_conf_uint( cfg, "boot-other", 0 );
-
-        // don't come back in update mode:
-        set_conf_uint( cfg, "update",     0 );
-        set_other_conf_uint( cfg_array, limit, selected_image, "update", 0 );
 
         // this config should have the highest priority
         set_conf_uint( cfg, "boot-requested-at", stamp );
@@ -930,10 +923,6 @@ int set_mode (image_cfg *cfg_array, size_t limit,
 
         // but no other images are set to bounce down the priority chain:
         set_other_conf_uint( cfg_array, limit, selected_image, "boot-other", 0 );
-
-        // the next boot will NOT be in update mode:
-        set_conf_uint( cfg, "update",     0 );
-        set_other_conf_uint( cfg_array, limit, selected_image, "update", 0 );
 
         // this config has the highest priority
         set_conf_uint( cfg, "boot-requested-at", stamp );
@@ -954,7 +943,6 @@ int set_mode (image_cfg *cfg_array, size_t limit,
         set_conf_uint( cfg, "boot-other"   , 0 );
         set_conf_uint( cfg, "boot-attempts", 0 );
         set_conf_uint( cfg, "boot-count"   , 0 );
-        set_conf_uint( cfg, "update"       , 0 );
         set_conf_uint( cfg, "boot-requested-at", stamp );
         set_timestamped_note( cfg, "bootconf mode: first-boot" );
         chosen->altered = true;
@@ -1444,7 +1432,6 @@ static int load_image_configs (image_cfg *cfg_array, size_t limit)
 static int select_image_config (image_cfg *conf, size_t loaded)
 {
     int selected = -1;
-    bool update  = false;
 
     if( loaded == 0 )
         return -1;
@@ -1462,25 +1449,6 @@ static int select_image_config (image_cfg *conf, size_t loaded)
         if( get_conf_uint( conf[i].cfg, "boot-other" ) )
         {
             TRACE( 1, "  boot-other is set, considering other images\n" );
-            // NOTE: we don't implement the update-window logic from
-            // the chainloader here as it is not currently in use.
-            // if the chainloader update-window behaviour is resurrected,
-            // an implementation will be required here:
-
-            // if boot-other is set, update should persist until we get to
-            // a non-boot-other entry:
-            if( !update )
-            {
-                update = get_conf_uint( conf[ i ].cfg, "update" ) > 0;
-                if( update )
-                    TRACE( 1, "  update flag set from config\n" );
-            }
-            continue;
-        }
-
-        if( update && get_conf_uint( conf[ i ].cfg, "update-disabled" ) > 0 )
-        {
-            TRACE( 1, "  update requested, but this image does not allow it\n" );
             continue;
         }
 
@@ -1491,8 +1459,8 @@ static int select_image_config (image_cfg *conf, size_t loaded)
         error( ENOENT, "No image matching '%s' found", &target_ident[ 0 ] );
 
     if( selected >= 0 )
-        TRACE( 1, "selected image #%d '%s' (update: %c)\n",
-               selected, &conf[ selected ].ident[ 0 ], update ? 'Y' : 'n' );
+        TRACE( 1, "selected image #%d '%s')\n",
+               selected, &conf[ selected ].ident[ 0 ]);
     else
         TRACE( 1, "no image selected out of %lu available\n", loaded );
 

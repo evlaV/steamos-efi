@@ -14,9 +14,10 @@ epoch), it will increment the highest existing value instead.
     boot-count: <0|POSITIVE_INTEGER>
     boot-time: <0|DATESTAMP_T>
     image-invalid: <0|1>
-    update: <0|1>
-    update-window-start: <0|DATESTAMP_T>
-    update-window-end: <0|DATESTAMP_T>
+    update: <0|1> [DEPRECATED]
+    update-disabled: <0|1> [DEPRECATED]
+    update-window-start: <0|DATESTAMP_T> [DEPRECATED]
+    update-window-end: <0|DATESTAMP_T> [DEPRECATED]
     loader: <|PATH>
     partitions: <DEVICE_LIST> [DEPRECATED]
 
@@ -33,20 +34,18 @@ The meanings of these entries are as follows:
   is considered damaged in some way. This reduces the priority of this boot
   image relative to any unflagged images.
   * should be cleared on successful boot
-* update: 1 if an update should occur
-  * may be combined with boot-other to indicate the other image should be updated
+* update: [DEPRECATED]
+  * update happens solely in userspace
+* update-disabled: [DEPRECATED]
+  * update happens solely in userspace
 * loader: normally a well-known path to the bootloader will be used by the
   chainloader. If this ever changes this key can be set to indicate an alternate
   bootloader should be invoked. Relative to the boot config file path or
   absolute, eg:
   * altboot.efi
   * /EFI/steamos/altboot.efi)
-* update-window-start, update-window-end: datestamp values
-  * an boot sequence which has 'update' set and which occurs within the
-    update window should trigger a boot with the update init target passed
-    via the kernel command line
-  * If update-window-start and update-window-end are both 0 then an update
-    is driven solely by the 'update' key
+* update-window-start, update-window-end: [DEPRECATED]
+  * update happens solely in userspace
 * partitions: DEPRECATED
   * superseded by the partsets directory, not looked at by either bootload stage
 

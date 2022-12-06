@@ -55,12 +55,6 @@ This file will focus more on the actual implementation details.
       * <f3> is being held down
         * A boot menu is displayed to let the user choose a boot option
   * If no boot option has been picked yet the newest SteamOS entry is selected
-  * If the chosen entry was flagged for update
-    * steamos-update=1 is added to the bootloader command line
-    * ENTRY_FLAG_UPDATE is ORed into chainloader entry flags UEFI variable
-  * These two mechanisms are redundant, either will trigger an update
-    * The chosen bootloader is executed. By default:
-      /EFI/SteamOS/grubx64.efi on the chosen EFI fs
 
 ### Stage 2: The bootloader ###
 
@@ -70,16 +64,11 @@ This is a mostly vanilla boot sequence with the following additions:
  * The loader flags variable is read into memory if set (see above)
  * The bootconf file is parsed
    * boot-attempts is incremented by 1 (in memory)
-   * If any of the following are true:
-     * steamos-update=1 is present on the command line
-     * the flags contain ENTRY_FLAG_UPDATE
    * If boot-attempts exceeds a built in value, the image-invalid flag is set
      * This does not disable booting, it lowers this image's priority
    * The bootconf file is saved - this can set the following items on disc:
      * image-invalid may go from 0 to 1
      * boot-attempts can increase by 1
-   * If the update flag is set the following is added to the kernel command line
-     * systemd.unit=steamos-update-os.target
    * The kernel + initrd are loaded and executed
 
 ### Stage 3: The OS ###

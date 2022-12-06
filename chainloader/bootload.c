@@ -189,35 +189,6 @@ typedef struct
     opt_type type;
 } boot_menu_option_data;
 
-static BOOLEAN update_scheduled_now (const cfg_entry *conf)
-{
-    if( get_conf_uint( conf, "update" ) )
-    {
-        UINT64 beg = get_conf_uint( conf, "update-window-start" );
-        UINT64 end = get_conf_uint( conf, "update-window-end"   );
-
-        // no beginning or end of update window specified,
-        // update mode is unconditional:
-        if( !end && !beg )
-            return TRUE;
-
-        UINT64 now = utc_datestamp();
-
-        // only a window end is specified, update if we are before it:
-        if( !beg )
-            return ( now <= beg ) ? TRUE : FALSE;
-
-        // only a window start is specified, upate if we are after it:
-        if( !end )
-            return ( now >= end ) ? TRUE : FALSE;
-
-        // both specified, update mode only if within time window:
-        return (( now >= beg ) && ( now <= end )) ? 1 : 0;
-    }
-
-    return FALSE;
-}
-
 #define COPY_FOUND(src,dst) \
     ({ dst.cfg         = src.cfg;         \
        dst.partition   = src.partition;   \
@@ -985,7 +956,6 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
 {
     UINT64 flags = 0;
     INTN selected = -1;
-    BOOLEAN update = FALSE;
     BOOLEAN boot_other = FALSE;
     EFI_STATUS res = EFI_SUCCESS;
 
@@ -1004,18 +974,7 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         if( get_conf_uint( found[ i ].cfg, "boot-other" ) )
         {
             v_msg( L"config #%u has boot-other set\n", i);
-            // if boot-other is set, update should persist until we get to
-            // a non-boot-other entry:
             boot_other = TRUE;
-            if( !update )
-                update = update_scheduled_now( found[ i ].cfg );
-            continue;
-        }
-
-        // if update is set but update is disabled, skip it
-        if( update && get_conf_uint( found[ i ].cfg, "update-disabled" ) )
-        {
-            v_msg( L"config #%u has both update-disabled + update set\n", i);
             continue;
         }
 
@@ -1114,11 +1073,6 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
 
         DEBUG_LOG("final config selection: #%d", selected );
 
-        // we never un-set an update we inherited from boot-other
-        // but we might have it set in our own config:
-        if( !update )
-            update = update_scheduled_now( chosen->config );
-
         flags = 0;
 
         if( boot_other )
@@ -1156,15 +1110,6 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
             }
         }
 
-        if( update )
-        {
-            // Our stage II bootloader looks for this command line string
-            // Do not remove it unless you also change stage II
-            DEBUG_LOG("OS-update boot mode");
-            appendstr_w( &args[ 0 ], sizeof( args ),  L" steamos-update=1" );
-            flags |= ENTRY_FLAG_UPDATE;
-        }
-
         // not strictly nvram but let's make sure the stage 2 loader is
         // handling command line args correctly by passing some canaries:
         if( nvram_debug )
@@ -1192,9 +1137,6 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
             set_loader_entry_selected( found_signatures[ selected ] );
         }
 
-        // This sets a volatile variable (it is _not_ in NVRAM) which
-        // passes the update (or not) flag. This is redundant with
-        // the command line update argumant steamos-update=1 above.
         set_chainloader_entry_flags( flags );
 
         res = EFI_SUCCESS;

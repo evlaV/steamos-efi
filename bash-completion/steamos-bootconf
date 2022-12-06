@@ -53,21 +53,21 @@ _steamos-bootconf()
     esac
 
     local args
-    _count_args ':=' "@(--output-to)" "@(--set|--get|--del|--mode|--update-windows)"
+    _count_args ':=' "@(--output-to)" "@(--set|--get|--del|--mode)"
 
     if [[ "$args" -eq 1 ]]; then
         _filedir
     else
         local arg
-        _get_n_arg ':=' "@(--output-to)" "@(--set|--get|--del|--mode|--update-windows)" 2
+        _get_n_arg ':=' "@(--output-to)" "@(--set|--get|--del|--mode)" 2
 
         if [[ ! "$arg" ]]; then
-            COMPREPLY=($(compgen -W "--set --get --del --mode --update-windows -h --help" -- "$cur"))
+            COMPREPLY=($(compgen -W "--set --get --del --mode -h --help" -- "$cur"))
         else
             case "$arg" in
                 --set|--get|--del)
                     if [[ "$args" -eq 3 ]]; then
-                        COMPREPLY=($(compgen -W "boot-requested-at boot-other boot-attempts boot-count boot-time image-invalid update update-window-start update-window-end loader partitions comment" -- "$cur"))
+                        COMPREPLY=($(compgen -W "boot-requested-at boot-other boot-attempts boot-count boot-time image-invalid loader partitions comment" -- "$cur"))
                     fi
                     ;;
                 --mode)

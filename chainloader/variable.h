@@ -21,7 +21,6 @@
 
 #define ENTRY_FLAG_INVALID    1UL << 0
 #define ENTRY_FLAG_BOOT_OTHER 1UL << 1
-#define ENTRY_FLAG_UPDATE     1UL << 2
 
 #define EFI_GLOBAL_VARIABLE_GUID                                \
     { 0x8BE4DF61, 0x93CA, 0x11d2,                               \

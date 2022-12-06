@@ -141,9 +141,4 @@ CHAR8  *strlower (CHAR8 *str);
 
 CHAR16 *resolve_path (CONST VOID *path, CONST CHAR16* relative_to, UINTN widen);
 
-UINT64 local_datestamp (VOID);
-UINT64 utc_datestamp (VOID);
-UINT64 local_timestamp (VOID);
-UINT64 utc_timestamp (VOID);
-
 UINT64 time_usec (VOID);

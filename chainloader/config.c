@@ -41,11 +41,15 @@ static cfg_entry bootspec[] =
     { .type = cfg_uint  , .name = "boot-count"          },
     { .type = cfg_stamp , .name = "boot-time"           },
     { .type = cfg_bool  , .name = "image-invalid"       },
+    // All the update options are deprecated but left for backwards
+    // compatibility
     { .type = cfg_bool  , .name = "update"              },
     { .type = cfg_bool  , .name = "update-disabled"     },
     { .type = cfg_stamp , .name = "update-window-start" },
     { .type = cfg_stamp , .name = "update-window-end"   },
     { .type = cfg_path  , .name = "loader"              },
+    // The parititons option is deprecated but left for backwards
+    // compatibility
     { .type = cfg_string, .name = "partitions"          },
     { .type = cfg_string, .name = "title"               },
     { .type = cfg_string, .name = "comment"             },
