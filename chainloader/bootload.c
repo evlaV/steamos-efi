@@ -1236,6 +1236,10 @@ EFI_STATUS exec_bootloader (bootloader *boot)
     res = set_image_cmdline( &efi_app, boot->args, &child );
     ERROR_JUMP( res, unload, L"command line not set" );
 
+    v_msg( L"Storing chained loader partition uuid in EFI var\n" );
+    DEBUG_LOG("storing stage 2 EFI partition UUID in nvram");
+    set_chainedloader_device_part_uuid( efi_app );
+
     DEBUG_LOG("Executing stage 2 loader at %a", &log_stamp[0]);
     res = exec_image( efi_app, &esize, &edata );
     WARN_STATUS( res, L"start image returned with exit code: %u; data @ 0x%x",
