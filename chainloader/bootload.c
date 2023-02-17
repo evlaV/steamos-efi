@@ -59,62 +59,6 @@ BOOLEAN boot_menu_requested (VOID)
     return display_menu;
 }
 
-// this will always return a zeroed-out buffer
-static EFI_STATUS allocate (VOID **p, UINTN s)
-{
-    if( p == NULL )
-        return EFI_INVALID_PARAMETER;
-
-    efi_free( *p );
-    *p = NULL;
-    *p = efi_alloc( s );
-
-    return (*p != NULL) ? EFI_SUCCESS : EFI_OUT_OF_RESOURCES;
-}
-
-// this is a rewrite of function LibFileSystemVolumeLabelInfo() to handle buggy
-// firmwares that does not return a NULL-terminated string and/or that makes
-// mismatch with the sizes of UTF-16 characters
-static EFI_FILE_SYSTEM_VOLUME_LABEL_INFO *volume_label_info (IN EFI_FILE_HANDLE fh)
-{
-    EFI_STATUS status;
-    UINTN      size     = SIZE_OF_EFI_FILE_SYSTEM_VOLUME_LABEL_INFO + 200;
-    EFI_GUID   vol_guid = EFI_FILE_SYSTEM_VOLUME_LABEL_INFO_ID;
-    EFI_FILE_SYSTEM_VOLUME_LABEL_INFO *buffer = NULL;
-
-    //
-    // Call the real function
-    //
-    if( fh == NULL )
-        return NULL;
-
-    while( TRUE )
-    {
-        // Some firmware implementations misinterpret byte-size as char16-size
-        // So above we allocate twice as much as we expect to need:
-        UINTN alloc_size = size * 2;
-
-        status = allocate( (VOID **)&buffer, alloc_size );
-        ERROR_RETURN( status, NULL, L"Memory alloc failure: %d bytes", alloc_size );
-
-        // This will reset size to the required value if EFI_BUFFER_TOO_SMALL:
-        status = uefi_call_wrapper( fh->GetInfo, 4, fh, &vol_guid, &size, (VOID *)buffer );
-        if( status == EFI_BUFFER_TOO_SMALL )
-            continue;
-
-        ERROR_RETURN( status, NULL, L"failed to get volume info" );
-
-        // Must have had a success to get this far.
-        // Make sure we have a NUL terminated string:
-        // We can't actually tell where the string ends, so just set the last
-        // allocated CHAR16 location to (CHAR16) NUL:
-        *((CHAR16 *)buffer + (alloc_size / 2) - 1) = (CHAR16)0;
-        break;
-    }
-
-    return buffer;
-}
-
 EFI_STATUS valid_efi_binary (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path)
 {
     EFI_STATUS res;
@@ -209,18 +153,6 @@ static UINTN swap_cfgs (found_cfg *f, UINTN a, UINTN b)
     COPY_FOUND( c     , f[ b ] );
 
     return 1;
-}
-
-static CHAR16 *volume_label (EFI_FILE_PROTOCOL *handle)
-{
-    EFI_FILE_SYSTEM_VOLUME_LABEL_INFO *volume = NULL;
-
-    volume = volume_label_info( handle );
-
-    if( !volume )
-        return NULL;
-
-    return volume->VolumeLabel;
 }
 
 EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
@@ -753,6 +685,28 @@ cleanup:
     return res;
 }
 
+static CHAR16 *boot_label (CHAR16 *cfg_path, const UINTN prefix_len)
+{
+    CHAR16 *label = NULL;
+    CHAR16 *cfg_file = cfg_path + prefix_len + 1;
+    UINTN llen = 0;
+
+    for( UINTN c = strlen_w(cfg_file); c > 0; c-- )
+    {
+        if( cfg_file[c] == L'.')
+        {
+            cfg_file[c] = (CHAR16)0;
+            break;
+        }
+    }
+
+    llen = (strlen_w( L"Image " ) + strlen_w( cfg_file ) + 1) * sizeof(CHAR16);
+    label = efi_alloc( llen );
+    SPrint( label, llen, L"Image %s", cfg_file );
+
+    return label;
+}
+
 EFI_STATUS find_loaders (EFI_HANDLE *handles,
                          CONST UINTN n_handles,
                          IN OUT bootloader *chosen)
@@ -905,8 +859,10 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
         found[ j ].boot_time = get_conf_uint( conf, "boot-time" );
         found[ j ].label     = strwiden( get_conf_str( conf, "title" ) );
 
+        // figure out a suitable label for this entry based on its config file
+        // which in turn should be based on the image slot identifier:
         if( !found[ j ].label || !found[ j ].label[ 0 ] )
-            found[ j ].label = volume_label( efi_root );
+            found[ j ].label = boot_label( &cfg_path[0], strlen_w(conf_path) );
 
         found[ j ].uuid      = efi_guid;
         found_signatures[ j ] = &found[ j ].uuid;
