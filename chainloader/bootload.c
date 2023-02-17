@@ -261,7 +261,7 @@ static con_menu *create_boot_menu (INTN selected)
     for( INTN i = 0; i < (INTN)found_cfg_count; i++ )
     {
         CHAR16 *label;
-        CHAR16 ui_label[16];
+        CHAR16 ui_label[20];
         BOOLEAN current = (selected == i);
         // The menu is displayed in reverse order to the least->most wanted
         // order of the found configs.
@@ -298,12 +298,12 @@ static con_menu *create_boot_menu (INTN selected)
         if( found[ i ].boot_time )
             SPrint( label, llen,
                     L"%s %s (@ %04lu-%02lu-%02lu %02lu:%02lu)",
-                    current ? L"Current " : L"Previous",
+                    current ? L"Cur " : L"Prev",
                     ui_label, SPLIT_TIME( found[ i ].boot_time ) );
         else
             SPrint( label, llen,
                     L"%s %s (@ -unknown-boot-time-)",
-                    current ? L"Current " : L"Previous",
+                    current ? L"Cur " : L"Prev",
                     ui_label );
 
         label[ llen - 1 ] = L'\0';
@@ -322,7 +322,7 @@ static con_menu *create_boot_menu (INTN selected)
 
         SPrint( label, llen,
                 L"%s %s (OS Boot Menu)",
-                current ? L"Current " : L"Previous", ui_label );
+                current ? L"Cur " : L"Prev", ui_label );
 
         label[ llen - 1 ] = L'\0';
 
