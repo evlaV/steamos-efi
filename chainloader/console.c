@@ -280,6 +280,77 @@ typedef enum
     NONE    = 0x00,
 } dummy;
 
+static CHAR16 *alloc_frame_line(UINTN xa, UINTN xz)
+{
+    return efi_alloc( (xz - xa + 2) * sizeof(CHAR16) );
+}
+
+static VOID fill_frame_line(CHAR16 *line,
+                            UINTN xa, UINTN xz,
+                            CHAR16 a, CHAR16 c, CHAR16 z)
+{
+    line[ 0 ]       = a;
+    line[ xz - xa ] = z;
+    line[ xz - xa + 1 ] = L'\0';
+
+    for( UINTN x = 1; x < xz - xa; x++ )
+        line[ x ] = c;
+}
+
+static VOID draw_info_frame(con_menu *menu, IN UINTN padding)
+{
+    const int col_a = padding;
+    const int col_z = menu->screen.col - 1 - padding;
+    const int row_a = menu->screen.row - 3;
+    const int row_z = menu->screen.row - 1;
+    CHAR16 *line = alloc_frame_line( col_a, col_z );
+
+    fill_frame_line( line, col_a, col_z, L'+', L'-', L'+');
+    con_set_cursor_position( col_a, row_a );
+    con_output_text( line );
+    con_set_cursor_position( col_a, row_z );
+    con_output_text( line );
+
+    fill_frame_line( line, col_a, col_z, L'|', L' ', L'|');
+    con_set_cursor_position( col_a, row_a + 1 );
+    con_output_text( line );
+
+    efi_free( line );
+}
+
+static VOID show_option_info(con_menu *menu, IN UINTN nth)
+{
+    static const UINTN padding = 1;
+    const UINTN info_line  = menu->screen.row - 2;
+    // padding on either side, plus 2 spaces for the bracketing character, plus
+    // 2 spaces for the gap between start and end bracketing chars and the text:
+    // |<padding>[ TEXT... ]<padding>|
+    const UINTN info_space = menu->screen.col - (2 * (padding + 2));
+    CHAR16 *blurb = &menu->option[ nth ].blurb[ 0 ];
+
+    con_set_output_attribute( DEFAULT_ATTRIBUTES );
+    draw_info_frame( menu, 1 );
+    con_set_cursor_position( padding + 2, info_line );
+
+    if( *blurb )
+    {
+        UINTN blen = strlen_w( blurb );
+
+        if( blen <= info_space )
+        {
+            con_output_text( blurb );
+        }
+        else
+        {
+            CHAR16 *buf = efi_alloc( (info_space + 1) * sizeof(*buf) );
+            mem_copy( buf, blurb, info_space );
+            buf[ info_space ] = L'\0';
+            con_output_text( buf );
+            efi_free( buf );
+        }
+    }
+}
+
 static VOID render_menu_option(con_menu *menu, IN UINTN nth, BOOLEAN on)
 {
     con_set_output_attribute( on ? SELECTED_ATTRIBUTES : DEFAULT_ATTRIBUTES );
@@ -289,6 +360,9 @@ static VOID render_menu_option(con_menu *menu, IN UINTN nth, BOOLEAN on)
     con_set_cursor_position( menu->offset.col + menu->width + 2,
                              menu->offset.row + nth );
     con_output_text( on ? L" <" : L"  " );
+
+    if( on )
+        show_option_info( menu, nth );
 }
 
 static VOID calculate_menu_layout (con_menu *menu)
