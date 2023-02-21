@@ -141,6 +141,7 @@ EFI_STATUS con_enable_cursor (IN BOOLEAN enable);
 typedef struct
 {
     CHAR16 label[80];
+    CHAR16 blurb[80];
     VOID *data;
 } con_menu_option;
 

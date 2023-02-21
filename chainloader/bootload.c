@@ -257,11 +257,14 @@ static con_menu *create_boot_menu (INTN selected)
       con_menu_alloc( (found_cfg_count * 2) + 1, L"SteamOS" );
 
     const UINT64 llen = sizeof( boot_menu->option[ 0 ].label );
+    const UINT64 blen = sizeof( boot_menu->option[ 0 ].blurb );
 
     for( INTN i = 0; i < (INTN)found_cfg_count; i++ )
     {
         CHAR16 *label;
+        CHAR16 *blurb;
         CHAR16 ui_label[20];
+        CHAR16 ui_blurb[40];
         BOOLEAN current = (selected == i);
         // The menu is displayed in reverse order to the least->most wanted
         // order of the found configs.
@@ -284,29 +287,32 @@ static con_menu *create_boot_menu (INTN selected)
         mem_copy( &ui_label[ 0 ], found[ i ].label, label_size );
 
         ui_label[ ARRAY_SIZE(ui_label) - 1 ] = L'\0';
+        ui_blurb[ ARRAY_SIZE(ui_blurb) - 1 ] = L'\0';
 
         // ==================================================================
         // basic boot entry
         o = (found_cfg_count - 1) - i;
         odata = efi_alloc( sizeof(boot_menu_option_data) );
         label = &(boot_menu->option[ o ].label[ 0 ]);
+        blurb = &(boot_menu->option[ o ].blurb[ 0 ]);
         odata->type = BOOT_NORMAL|BOOT_VERBOSE;
         odata->config = i;
         boot_menu->option[ o ].data = odata;
         odata = NULL;
 
+        SPrint( label, llen, L"%s %s",
+                current ? L"Current " : L"Previous",
+                ui_label );
+
         if( found[ i ].boot_time )
-            SPrint( label, llen,
-                    L"%s %s (@ %04lu-%02lu-%02lu %02lu:%02lu)",
-                    current ? L"Cur " : L"Prev",
-                    ui_label, SPLIT_TIME( found[ i ].boot_time ) );
+            SPrint( blurb, blen,
+                    L"Booted @ %04lu-%02lu-%02lu %02lu:%02lu",
+                    SPLIT_TIME( found[ i ].boot_time ) );
         else
-            SPrint( label, llen,
-                    L"%s %s (@ -unknown-boot-time-)",
-                    current ? L"Cur " : L"Prev",
-                    ui_label );
+            SPrint( blurb, blen, L"-unknown-boot-time-" );
 
         label[ llen - 1 ] = L'\0';
+        blurb[ blen - 1 ] = L'\0';
 
         entries++;
 
@@ -315,16 +321,25 @@ static con_menu *create_boot_menu (INTN selected)
         o += found_cfg_count;
         odata = efi_alloc( sizeof(boot_menu_option_data) );
         label = &(boot_menu->option[ o ].label[ 0 ]);
+        blurb = &(boot_menu->option[ o ].blurb[ 0 ]);
         odata->type = BOOT_NORMAL|BOOT_VERBOSE|BOOT_MENU;
         odata->config = i;
         boot_menu->option[ o ].data = odata;
         odata = NULL;
 
         SPrint( label, llen,
-                L"%s %s (OS Boot Menu)",
-                current ? L"Cur " : L"Prev", ui_label );
+                L"%s %s + Boot Menu",
+                current ? L"Current " : L"Previous", ui_label );
+
+        if( found[ i ].boot_time )
+            SPrint( blurb, blen,
+                    L"Booted @ %04lu-%02lu-%02lu %02lu:%02lu",
+                    SPLIT_TIME( found[ i ].boot_time ) );
+        else
+            SPrint( blurb, blen, L"-unknown-boot-time-" );
 
         label[ llen - 1 ] = L'\0';
+        blurb[ blen - 1 ] = L'\0';
 
         entries++;
     }
@@ -332,15 +347,20 @@ static con_menu *create_boot_menu (INTN selected)
     if( entries > 0 )
     {
         CHAR16 *label;
+        CHAR16 *blurb;
         boot_menu_option_data *odata =
           efi_alloc( sizeof(boot_menu_option_data) );
 
         label = &(boot_menu->option[ entries ].label[ 0 ]);
+        blurb = &(boot_menu->option[ entries ].blurb[ 0 ]);
         boot_menu->option[ entries ].data = odata;
         odata->type = BOOT_VERBOSE|BOOT_RESET;
         odata->config = selected;
         SPrint( label, llen, L"-- ERASE USER DATA FROM DECK --" );
+        SPrint( blurb, blen,
+                L"Erase games, accounts, passwords, networks from deck" );
         label[ llen - 1 ] = L'\0';
+        blurb[ blen - 1 ] = L'\0';
 
         entries++;
     }
