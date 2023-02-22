@@ -152,6 +152,7 @@ typedef struct
     struct { UINTN col; UINTN row; } screen;
     UINTN width;
     UINTN entries;
+    UINTN label_width;
     con_menu_option *option;
 } con_menu;
 

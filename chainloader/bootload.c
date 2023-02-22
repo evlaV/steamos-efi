@@ -118,6 +118,14 @@ static found_cfg found[MAX_BOOTCONFS + 1];
 static UINTN found_cfg_count;
 static EFI_GUID *found_signatures[MAX_BOOTCONFS + 1];
 
+#define BOOT_MENU_TEXT L" + Boot Menu"
+#define BOOT_MENU_TEXT_LEN   (sizeof(BOOT_MENU_TEXT)/sizeof(CHAR16))
+#define BOOT_MENU_PREFIX_CUR L"Current "
+#define BOOT_MENU_PREFIX_PRV L"Previous"
+#define BOOT_MENU_PREFIX_LEN (sizeof(BOOT_MENU_PREFIX_PRV)/sizeof(CHAR16))
+#define BOOT_MENU_RESET_TEXT L"-- ERASE USER DATA FROM DECK --"
+#define BOOT_MENU_RESET_TLEN (sizeof(BOOT_MENU_RESET_TEXT)/sizeof(CHAR16))
+
 typedef enum
 {
     BOOT_NONE    = 0x00,
@@ -256,33 +264,36 @@ static con_menu *create_boot_menu (INTN selected)
     con_menu *boot_menu =
       con_menu_alloc( (found_cfg_count * 2) + 1, L"SteamOS" );
 
+    // these sizes are in BYTEs not CHAR16s since SPrint can write
+    // wide and narrow chars and therefore needs the space in bytes:
     const UINT64 llen = sizeof( boot_menu->option[ 0 ].label );
     const UINT64 blen = sizeof( boot_menu->option[ 0 ].blurb );
+    const UINT64 lchars = llen / sizeof(CHAR16);
+    const UINT64 bchars = blen / sizeof(CHAR16);
 
     for( INTN i = 0; i < (INTN)found_cfg_count; i++ )
     {
         CHAR16 *label;
         CHAR16 *blurb;
-        CHAR16 ui_label[20];
-        CHAR16 ui_blurb[40];
+        CHAR16 ui_label[40] = {0};
+        CHAR16 ui_blurb[40] = {0};
         BOOLEAN current = (selected == i);
         // The menu is displayed in reverse order to the least->most wanted
         // order of the found configs.
         UINTN o;
         UINTN label_size;
+        UINTN label_length;
         boot_menu_option_data *odata = NULL;
 
-        // ==================================================================
-        // UEFI printf doesn't do left align/right pad:
-        for( UINTN j = 0; j < ARRAY_SIZE(ui_label); j++ )
-            ui_label[ j ] = L' ';
+        label_length = strlen_w( found[ i ].label );
 
-        label_size = strlen_w( found[ i ].label );
+        if( label_length > boot_menu->label_width )
+            boot_menu->label_width = label_length;
 
-        if( label_size > ARRAY_SIZE(ui_label) )
-            label_size = ARRAY_SIZE(ui_label);
+        if( label_length > ARRAY_SIZE(ui_label) )
+            label_length = ARRAY_SIZE(ui_label);
 
-        label_size *= sizeof( *found[ i ].label );
+        label_size = label_length * sizeof( *found[ i ].label );
 
         mem_copy( &ui_label[ 0 ], found[ i ].label, label_size );
 
@@ -301,7 +312,7 @@ static con_menu *create_boot_menu (INTN selected)
         odata = NULL;
 
         SPrint( label, llen, L"%s %s",
-                current ? L"Current " : L"Previous",
+                current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
                 ui_label );
 
         if( found[ i ].boot_time )
@@ -311,8 +322,8 @@ static con_menu *create_boot_menu (INTN selected)
         else
             SPrint( blurb, blen, L"-unknown-boot-time-" );
 
-        label[ llen - 1 ] = L'\0';
-        blurb[ blen - 1 ] = L'\0';
+        label[ lchars - 1 ] = L'\0';
+        blurb[ bchars - 1 ] = L'\0';
 
         entries++;
 
@@ -328,8 +339,9 @@ static con_menu *create_boot_menu (INTN selected)
         odata = NULL;
 
         SPrint( label, llen,
-                L"%s %s + Boot Menu",
-                current ? L"Current " : L"Previous", ui_label );
+                L"%s %s",
+                current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
+                ui_label );
 
         if( found[ i ].boot_time )
             SPrint( blurb, blen,
@@ -338,11 +350,31 @@ static con_menu *create_boot_menu (INTN selected)
         else
             SPrint( blurb, blen, L"-unknown-boot-time-" );
 
-        label[ llen - 1 ] = L'\0';
-        blurb[ blen - 1 ] = L'\0';
+        label[ lchars - 1 ] = L'\0';
+        blurb[ bchars - 1 ] = L'\0';
 
         entries++;
     }
+
+    // Add "+ Boot Menu" etc labels to entries that need them:
+    UINTN max_llen = boot_menu->label_width + BOOT_MENU_PREFIX_LEN;
+
+    for( INTN i = 0; i < entries; i++ )
+    {
+        CHAR16 *label;
+        boot_menu_option_data *bmo = boot_menu->option[ i ].data;
+
+        if( !(bmo->type & BOOT_MENU) )
+            continue;
+
+        label = &(boot_menu->option[ i ].label[ 0 ]);
+
+        SPrint( label + max_llen, llen - (max_llen * sizeof(*label)),
+                L"%s", BOOT_MENU_TEXT );
+        label[ lchars - 1 ] = L'\0';
+    }
+
+    max_llen += BOOT_MENU_TEXT_LEN;
 
     if( entries > 0 )
     {
@@ -350,17 +382,27 @@ static con_menu *create_boot_menu (INTN selected)
         CHAR16 *blurb;
         boot_menu_option_data *odata =
           efi_alloc( sizeof(boot_menu_option_data) );
+        UINTN offset = 0;
+
+        if( BOOT_MENU_RESET_TLEN < max_llen - 1 )
+            offset = (max_llen - BOOT_MENU_RESET_TLEN) / 2;
 
         label = &(boot_menu->option[ entries ].label[ 0 ]);
         blurb = &(boot_menu->option[ entries ].blurb[ 0 ]);
         boot_menu->option[ entries ].data = odata;
         odata->type = BOOT_VERBOSE|BOOT_RESET;
         odata->config = selected;
-        SPrint( label, llen, L"-- ERASE USER DATA FROM DECK --" );
+
+        for( UINTN s = 0; s < offset; s++ )
+            label[ s ] = L' ';
+
+        SPrint( label + offset, llen - (offset * sizeof(*label)),
+                BOOT_MENU_RESET_TEXT );
         SPrint( blurb, blen,
                 L"Erase games, accounts, passwords, networks from deck" );
-        label[ llen - 1 ] = L'\0';
-        blurb[ blen - 1 ] = L'\0';
+
+        label[ lchars - 1 ] = L'\0';
+        blurb[ bchars - 1 ] = L'\0';
 
         entries++;
     }

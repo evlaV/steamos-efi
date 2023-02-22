@@ -260,6 +260,7 @@ con_menu_alloc (INTN entries, CONST CHAR16 *title)
     menu->title   = strdup_w( title ?: L"-" );
     menu->option  = efi_alloc( entries * sizeof(con_menu_option) );
     menu->entries = entries;
+    menu->label_width = 0;
 
     return menu;
 }
