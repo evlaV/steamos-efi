@@ -369,6 +369,10 @@ static con_menu *create_boot_menu (INTN selected)
 
         label = &(boot_menu->option[ i ].label[ 0 ]);
 
+        // labels shorter than the longest one will need some padding:
+        for( UINTN j = strlen_w( label ); j < max_llen; j++ )
+            *(label + j) = L' ';
+
         SPrint( label + max_llen, llen - (max_llen * sizeof(*label)),
                 L"%s", BOOT_MENU_TEXT );
         label[ lchars - 1 ] = L'\0';
