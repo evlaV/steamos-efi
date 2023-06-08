@@ -1,0 +1,351 @@
+#!/bin/bash
+
+# steamos-efi  --  SteamOS EFI Chainloader
+
+# SPDX-License-Identifier: GPL-2.0+
+# Copyright © 2023 Collabora Ltd
+# Copyright © 2023 Valve Corporation
+
+# This file is part of steamos-efi.
+
+# steamos-efi is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2.0 of the License, or
+# (at your option) any later version.
+
+# steamos-efi is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with steamos-efi.  If not, see <http://www.gnu.org/licenses/>.
+
+set -u
+
+declare -r TAB="	";
+declare BOOT_DEV=;
+declare BOOT_PART=;
+declare BOOT_CUR=;
+declare BOOT_ENTRY=;
+declare BOOT_LOADER=;
+declare BOOT_LABEL=;
+declare BOOT_ARGS=;
+declare BOOT_NEXT=;
+declare -a BOOT_ORDER=();
+declare DUPLICATE=0;
+declare NOOP=0;
+declare USER_ENTRY=;
+declare -r EFIBOOT_UUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
+
+verbose_arg_as_hex ()
+{
+    local hexstr=;
+    local wchar x;
+    while read wchar x;
+    do
+        hexstr=${hexstr}${wchar};
+    done < <(echo -ne "display-menu\0"|iconv -t UCS-2|od --endian big -x -A n -w2)
+
+    echo "$hexstr"
+}
+
+declare -r HEXARG=$(verbose_arg_as_hex);
+
+# Does the boot arg string contain "display-menu\0" encoded as UCS-2?
+arg_has_noise ()
+{
+    local cmdline="$1"
+
+    [ "${cmdline/$HEXARG/}" != "$cmdline" ];
+}
+
+# add/remove "+Menu" from boot label string
+label_noise ()
+{
+    local state="${1:-}"
+    local text="${2:-SteamOS}"
+
+    case $state in
+        on)
+            case $text in
+                *[Mm][Ee][Nn][Uu]*) echo "$text"; ;;
+                *) echo "$text+Menu" | sed -re 's/[^A-Z]?quiet//gi'; ;;
+            esac
+            ;;
+        off)
+            case $text in
+                *[Mm][Ee][Nn][Uu]*) echo "$text" | sed -re 's/[^A-Z]?menu//gi'; ;;
+                *) echo "$text"; ;;
+            esac
+            ;;
+        *)
+            echo "$text";
+            ;;
+    esac
+}
+
+read_os_device_from_entry ()
+{
+    local data="$1";
+    local dev uuid x;
+
+    data=${data#*HD\(*,GPT,};
+    data=${data%%,*,*\)*};
+    data=${data,,};
+
+    while read dev uuid x;
+    do
+        if [ "$uuid" = "$data" ];
+        then
+            BOOT_DEV=${dev%p[0-9]};
+            BOOT_PART=${dev##*p};
+            break;
+        fi
+    done < <(lsblk -ro name,partuuid)
+}
+
+read_efi_state_from_entry ()
+{
+    local data="$1";
+    local path=;
+
+    BOOT_ARGS=${data##*\)};
+
+    read_os_device_from_entry "$data";
+
+    case $data in
+        (*/File\(*)
+            path=${data##*/File\(};
+            path=${path%%\)*};
+            BOOT_LOADER="$path";
+            ;;
+        (*\)RC)
+            # RC entries are system recovery entries placed there by the firmware
+            # we do not alter them - instead we make an entry that is as similar
+            # as possible but which points to the steamos chainloader:
+            echo "INFO: Copying RC entry $BOOT_ENTRY instead of modifying it" >&2;
+            DUPLICATE=1;
+            BOOT_ARGS=;
+            BOOT_LOADER="\\EFI\\STEAMOS\\STEAMCL.EFI";
+            ;;
+    esac
+}
+
+check_efi_state ()
+{
+    local new_entry=0;
+    local try_entry=;
+
+    if [ -z "${BOOT_ENTRY:-}" ];
+    then
+        echo "Unable to read current boot entry" >&2
+        exit 1;
+    fi
+
+    if [ ! -e /sys/firmware/efi/efivars/Boot${BOOT_ENTRY}-${EFIBOOT_UUID} ];
+    then
+        echo "No such boot entry Boot${BOOT_ENTRY}" >&2
+        exit 1;
+    fi
+    
+    if [ -z "$BOOT_LABEL" ];
+    then
+        echo "Boot$BOOT_ENTRY has no label" >&2
+        exit 1
+    fi
+
+    if [ -z "$BOOT_LOADER" ];
+    then
+        echo "Boot${BOOT_ENTRY} has no bootloader" >&2
+        exit 1
+    fi
+    
+    if [ ! -b /dev/${BOOT_DEV:-nodevice}p${BOOT_PART:-0} ];
+    then
+        echo "No valid partition found for Boot$BOOT_ENTRY" >&2
+        echo "Tried: /dev/${BOOT_DEV:-}p${BOOT_PART:-}" >&2
+        exit 1
+    fi
+
+    # If we're copying an antry, find a vacant slot.
+    # There should be one between 0000 and 1000 - we've more than likely exhausted
+    # NVRAM storage anyway if there are more entries than that.
+    if [ ${DUPLICATE:-0} = 1 ];
+    then
+        while [ $new_entry -lt 1000 ];
+        do
+            try_entry=$(printf "%04d" $new_entry);
+
+            if [ ! -e /sys/firmware/efi/efivars/Boot${try_entry}-${EFIBOOT_UUID} ];
+            then
+                BOOT_ENTRY=${try_entry};
+                break;
+            fi
+
+            new_entry=$((new_entry + 1));
+        done
+    fi
+}
+
+read_efi_state ()
+{
+    local _IFS="$IFS";
+    local name label payload;
+
+    IFS="$TAB";
+    while read -rs label payload
+    do
+        name=${label%%[:*]*}
+        label=${label#*[:*] }
+        case $name in
+            BootCurrent)
+                # the fallback value of BOOT_ENTRY is BootCurrent but
+                # BootOrder or a user specified boot entry override this:
+                BOOT_CUR=${label};
+                BOOT_ENTRY=${BOOT_ENTRY:-${BOOT_CUR}};
+                ;;
+            BootNext)
+                BOOT_NEXT=$label;
+                ;;
+            BootOrder)
+                read -a BOOT_ORDER < <(echo "$label" | sed -re 's/,/\t/g');
+                if [ -n "${BOOT_ORDER[0]:-}" ];
+                then
+                    # if the user has not specified a boot entry, use the default
+                    # boot entry from BootOrder
+                    if [ -z "${USER_ENTRY:-}" ] &&
+                       [ ${BOOT_ENTRY:-none} != ${BOOT_ORDER[0]:-none} ];
+                    then
+                        echo "INFO: Using default boot ${BOOT_ORDER[0]}"
+                        BOOT_ENTRY=${BOOT_ORDER[0]};
+                    fi
+                fi
+                ;;
+            Boot[0-9][0-9][0-9][0-9])
+                if [ $name = "Boot${BOOT_ENTRY}" ];
+                then
+                    case $payload in
+                        (HD\(*|*/HD\(*)
+                            IFS=$_IFS;
+                            BOOT_LABEL="$label";
+                            read_efi_state_from_entry "$payload";
+                            break;
+                            ;;
+                        (*)
+                            echo "Current boot entry $name" not on local disk >&2;
+                            echo "# $payload" >&2;
+                            exit 1;
+                            ;;
+                    esac
+                    break;
+                fi
+                ;;
+        esac
+    done < <(efibootmgr)
+    IFS="$_IFS";
+    check_efi_state;
+}
+
+toggle_boot_entry ()
+{
+    local noop=;
+    local quot=;
+    local args=;
+    local label=;
+
+    if [ ${NOOP:-0} = 1 ];
+    then
+        noop=echo;
+        quot="\"";
+    fi
+
+    # delete the old entry (unless we're cloning an RC entry):
+    if [ $DUPLICATE = 0 ];
+    then
+        if [ ${NOOP:-0} = 1 ];
+        then
+            $noop efibootmgr -b $BOOT_ENTRY -B
+        else
+            efibootmgr -b $BOOT_ENTRY -B > /dev/null
+        fi
+    fi
+
+    # toggle the verbosity of the new entry compared to the old value:
+    if arg_has_noise "$BOOT_ARGS";
+    then
+        label=$(label_noise off "$BOOT_LABEL");
+
+        $noop efibootmgr -b $BOOT_ENTRY -c \
+              -d /dev/$BOOT_DEV \
+              -p $BOOT_PART \
+              -l $quot"$BOOT_LOADER"$quot \
+              -L $quot"$label"$quot;
+    else
+        args=$(mktemp);
+        label=$(label_noise on "$BOOT_LABEL");
+
+        if [ ${NOOP:-0} = 1 ];
+        then
+            $noop echo -ne $quot"display-menu\0"$quot \| iconv -t UCS-2 \> $args
+            BOOT_LOADER=${BOOT_LOADER//\\/\\\\};
+        else
+            echo -ne "display-menu\0" | iconv -t UCS-2 > $args
+        fi
+
+        $noop efibootmgr -b $BOOT_ENTRY -c \
+              -d /dev/$BOOT_DEV \
+              -p $BOOT_PART \
+              -l $quot"$BOOT_LOADER"$quot \
+              -L $quot"$label"$quot -@ $args;
+        $noop rm -f ${args:-/no/such/file}
+    fi
+
+    # make sure BootNext doesn't override our chosen entry:
+    if [ -n "${BOOT_NEXT:-}" ] &&
+       [ "${BOOT_NEXT}" != "${BOOT_ENTRY}" ];
+    then
+        $noop efibootmgr -N;
+    fi
+}
+
+help ()
+{
+    cat - <<EOF;
+$0 [-n|--dry-run|--noop] [ENTRY]
+
+   Toggles verbose boot for the default boot entry (or ENTRY, if specified)
+   Erases the BootNext entry if it differs from the target entry.
+
+   If the boot entry is a system-recovery "RC" entry then it is copied
+   instead of being altered.
+
+   -n --dry-run --noop:
+      Just print the commands that would be executed.
+
+   ENTRY (eg "0001")
+      Operate on BootENTRY instead of the default entry
+      ENTRY is always a 4 digit decimal integer.
+EOF
+}
+
+for arg in "$@";
+do
+    case $arg in
+        -h|--help|-\?)
+            help;
+            exit 0;
+            ;;
+        -n|--noop|--dry-run)
+            NOOP=1;
+            ;;
+        *)
+            BOOT_ENTRY=${BOOT_ENTRY:-$arg};
+            USER_ENTRY=${BOOT_ENTRY};
+            break;
+            ;;
+    esac;
+done
+
+read_efi_state;
+toggle_boot_entry;
