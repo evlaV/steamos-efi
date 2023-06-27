@@ -68,7 +68,7 @@ static UINTN set_config_item_from_line (cfg_entry *item, CHAR8 *line)
     if( ll <= nl + 1 )
         return 0;
 
-    // beginning of line does not match item->name + ':'
+    // beginning of line does not match item->name + ':' - not the line we want
     if( strncmpa( (CHAR8 *)item->name, line, nl ) )
         return 0;
     if( line[ nl ] != ':' )
@@ -127,6 +127,7 @@ static UINTN set_config_from_line (cfg_entry *cfg, CHAR8* line)
 {
     UINTN found = 0;
 
+    // check each cfg_entry spec against each line and fill out *cfg:
     for( UINTN i = 0; cfg[ i ].type != cfg_end; i++  )
         found += set_config_item_from_line( &cfg[ i ], line );
 
@@ -210,6 +211,9 @@ EFI_STATUS parse_config (EFI_FILE_PROTOCOL *root_dir,
     UINTN cfsize;
     UINTN cfalloc;
 
+    // This initialises the cfg_entry with labels and data types unknown
+    // entries will be discarded so only ones defined in bootspec will
+    // be visible to us via the returned cfg_entry array:
     *config = new_config();
     if( !config )
         goto allocfail;
