@@ -136,9 +136,9 @@ typedef enum
 {
     BOOT_NONE    = 0x00,
     BOOT_NORMAL  = 0x01,
-    BOOT_VERBOSE = 0x02, // implemented by: grub steamenv module
-    BOOT_RESET   = 0x04, // implemented by: steamos-customizations/dracut
-    BOOT_MENU    = 0x08, // NOT implemented: grub config? grub steamenv mod?
+    BOOT_VERBOSE = 0x02, // handler: grub steamenv module
+    BOOT_RESET   = 0x04, // handler: steamos-customizations/{dracut,mkinitcpio}
+    BOOT_MENU    = 0x08, // handler: grub steamenv module
 } opt_type;
 
 typedef struct
