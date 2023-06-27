@@ -40,6 +40,7 @@
 #define EFI_STUB_ARCH 0x8664
 
 static BOOLEAN display_menu = FALSE;
+static BOOLEAN verbose_boot = FALSE;
 
 EFI_STATUS EFIAPI
 request_menu (IN EFI_KEY_DATA *k opt)
@@ -47,6 +48,11 @@ request_menu (IN EFI_KEY_DATA *k opt)
     display_menu = TRUE;
 
     return EFI_SUCCESS;
+}
+
+VOID request_verbose_boot (VOID)
+{
+    verbose_boot = TRUE;
 }
 
 VOID request_boot_menu (VOID)
@@ -1099,6 +1105,11 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
 
         if( boot_other )
             flags |= ENTRY_FLAG_BOOT_OTHER;
+
+        // add in boot mode requests from the EFI command line, flag files
+        // on the ESP filesystem, etc:
+        if( verbose_boot )
+            boot_type |= BOOT_VERBOSE;
 
         switch( boot_type )
         {

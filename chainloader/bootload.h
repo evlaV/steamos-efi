@@ -40,6 +40,7 @@ typedef struct
 EFI_STATUS EFIAPI request_menu (IN EFI_KEY_DATA *k opt);
 BOOLEAN boot_menu_requested (VOID);
 VOID request_boot_menu (VOID);
+VOID request_verbose_boot (VOID);
 EFI_STATUS console_mode (VOID);
 
 EFI_STATUS valid_efi_binary (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path);

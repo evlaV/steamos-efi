@@ -123,6 +123,12 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
 
         if( cmdline && strstr_w( cmdline, L"display-menu" ) )
             request_boot_menu();
+
+        if( cmdline && strstr_w( cmdline, L"verbose" ) )
+        {
+            request_verbose_boot();
+            set_verbosity( 1 );
+        }
     }
 
     // no need to watch for keys if the command line already asked for a menu
