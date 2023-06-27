@@ -41,6 +41,7 @@ static cfg_entry bootspec[] =
     { .type = cfg_uint  , .name = "boot-count"          },
     { .type = cfg_stamp , .name = "boot-time"           },
     { .type = cfg_bool  , .name = "image-invalid"       },
+    { .type = cfg_uint  , .name = "verbose"             },
     // All the update options are deprecated but left for backwards
     // compatibility
     { .type = cfg_bool  , .name = "update"              },
