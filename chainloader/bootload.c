@@ -181,6 +181,7 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     CHAR16 *flag_path = NULL;
     CHAR16 *verb_path = NULL;
     CHAR16 *vdbg_path = NULL;
+    CHAR16 *menu_path = NULL;
 
     loader_file = get_self_file();
     loader->criteria.is_restricted = 0;
@@ -198,6 +199,7 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     flag_path = resolve_path( FLAGFILE_RESTRICT, orig_path, FALSE );
     verb_path = resolve_path( FLAGFILE_VERBOSE , orig_path, FALSE );
     vdbg_path = resolve_path( FLAGFILE_NVDEBUG , orig_path, FALSE );
+    menu_path = resolve_path( FLAGFILE_MENU    , orig_path, FALSE );
 
     if( !flag_path && !verb_path && !vdbg_path)
         res = EFI_INVALID_PARAMETER;
@@ -231,6 +233,10 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     if( vdbg_path )
         if( efi_file_exists( root_dir, vdbg_path ) != EFI_SUCCESS )
             set_nvram_debug( 0 );
+
+    if( menu_path )
+        if( efi_file_exists( root_dir, menu_path ) == EFI_SUCCESS )
+            request_boot_menu();
 
     if( flag_path && efi_file_exists( root_dir, flag_path ) == EFI_SUCCESS )
         loader->criteria.is_restricted = 1;
