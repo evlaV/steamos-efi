@@ -42,6 +42,7 @@
 static BOOLEAN display_menu = FALSE;
 static BOOLEAN verbose_boot = FALSE;
 
+// This is for hooking up to EFI keypress callbacks
 EFI_STATUS EFIAPI
 request_menu (IN EFI_KEY_DATA *k opt)
 {
