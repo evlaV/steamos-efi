@@ -47,7 +47,7 @@ dist_bashcompletion_DATA = bash-completion/steamcl-install \
                            bash-completion/steamos-bootconf
 endif
 dist_pkgdata_DATA   = data/steamcl-version
-dist_sbin_SCRIPTS   = util/steamcl-install
+dist_sbin_SCRIPTS   = util/steamcl-install util/steamos-bootdebug
 CLEANFILES          = data/steamcl-version
 
 # we need a non-standard step here to turn the elf output of the normal-ish
