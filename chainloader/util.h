@@ -30,6 +30,13 @@
 
 #define opt __attribute__ ((unused))
 
+#if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#  define GNUC_PREREQ(maj,min) \
+	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+#  define GNUC_PREREQ(maj,min) 0
+#endif
+
 #define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 
 #ifndef EFI_FILE_RESERVED
@@ -124,6 +131,8 @@ UINTN   sprintf_w  (CHAR16 *buf, UINT64 size, const CHAR16 *fmt, ...);
 UINTN   vsprintf_w (CHAR16 *buf, UINT64 size, const CHAR16 *fmt, va_list args);
 
 VOID mem_copy (void *dest, const VOID *src, UINTN len);
+INTN mem_cmp  (const VOID *a, const VOID *b, UINTN len);
+VOID mem_set  (VOID *dest, UINT8 c, UINTN n);
 INTN guid_cmp (const VOID *a, const VOID *b);
 
 EFI_DEVICE_PATH *handle_device_path (EFI_HANDLE *handle);

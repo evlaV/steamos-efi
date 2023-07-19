@@ -716,6 +716,16 @@ VOID mem_copy (void *dest, const VOID *src, UINTN len)
     CopyMem( dest, src, len );
 }
 
+INTN mem_cmp (const VOID *a, const VOID *b, UINTN len)
+{
+    return CompareMem( a, b, len );
+}
+
+VOID mem_set (VOID *dest, UINT8 c, UINTN n)
+{
+    SetMem( dest, n, c );
+}
+
 INTN guid_cmp (const VOID *a, const VOID *b)
 {
     return CompareMem( a, b, sizeof(EFI_GUID) );

@@ -92,6 +92,8 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/bootload.h \
                        chainloader/partset.c \
                        chainloader/partset.h \
+                       chainloader/gfx/font.h \
+                       chainloader/gfx/font.c \
                        chainloader/variable.c \
                        chainloader/variable.h
 
