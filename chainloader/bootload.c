@@ -229,6 +229,8 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
         if( efi_file_exists( root_dir, verb_path ) != EFI_SUCCESS )
             set_verbosity( 0 );
 
+    debug_log_start_logging();
+
     // likewise we turn nvram debug off if the path is potentially
     // valid but the file definitely is not there:
     if( vdbg_path )

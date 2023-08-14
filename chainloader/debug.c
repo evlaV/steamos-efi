@@ -123,6 +123,13 @@ cleanup:
     debug_abuf = NULL;
 }
 
+EFI_STATUS debug_log_start_logging (VOID)
+{
+    DEBUG_LOG("initialised @ %a", &log_stamp[0]);
+    WARN_STATUS( EFI_UNSUPPORTED, L"dummy warning (test logging)" );
+    ERROR_RETURN( EFI_INVALID_PARAMETER, 1, L"dummy error (test logging)" );
+}
+
 VOID debug_log_close (VOID)
 {
     if( debug_log == NULL )

@@ -29,6 +29,7 @@ extern CHAR8 log_stamp[];
 
 VOID update_logstamp   (VOID);
 VOID debug_log_init    (EFI_FILE_PROTOCOL *dir, CHAR16 *path_rel);
+EFI_STATUS debug_log_start_logging (VOID);
 VOID debug_log_close   (VOID);
 VOID debug_log_printf  (const char *fmt, ...);
 VOID debug_log_wprintf (const CHAR16 *fmt, ...);
