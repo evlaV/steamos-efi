@@ -30,12 +30,27 @@
 
 #define opt __attribute__ ((unused))
 
+#if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#  define GNUC_PREREQ(maj,min) \
+	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+#  define GNUC_PREREQ(maj,min) 0
+#endif
+
 #define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 
 #ifndef EFI_FILE_RESERVED
 #ifdef  EFI_FILE_RESERVIED
 #define EFI_FILE_RESERVED EFI_FILE_RESERVIED
 #endif
+#endif
+
+#ifndef MAX
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
 #define MAXFSNAMLEN 200
@@ -106,6 +121,8 @@ EFI_DEVICE_PATH *get_self_device_path (VOID);
 EFI_DEVICE_PATH *get_self_file (VOID);
 
 VOID initialise (EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table);
+
+UINT32 wchar_codepoint (CHAR16 c);
 
 UINTN strlen_w (const CHAR16 *str);
 UINTN strlen_a (const CHAR8 *str);
