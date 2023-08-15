@@ -81,8 +81,12 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/exec.h \
                        chainloader/config.c \
                        chainloader/config.h \
-                       chainloader/console.c \
-                       chainloader/console.h \
+                       chainloader/con/console.c \
+                       chainloader/con/console.h \
+                       chainloader/con/menu.c \
+                       chainloader/con/menu.h \
+                       chainloader/menu.c \
+                       chainloader/menu.h \
                        chainloader/console-ex.c \
                        chainloader/console-ex.h \
                        chainloader/debug.h \

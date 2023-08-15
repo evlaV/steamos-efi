@@ -29,10 +29,9 @@
 #include "bootload.h"
 #include "exec.h"
 #include "variable.h"
-#include "console.h"
 #include "partset.h"
-#include "console-ex.h"
 #include "gfx/font.h"
+#include "menu.h"
 
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
@@ -272,24 +271,27 @@ cleanup:
     (UINT64)((x % 1000000)          - (x % 10000))       / 10000,       \
     (UINT64)((x % 10000)            - (x % 100))         / 100
 
-static VOID destroy_boot_menu (con_menu *menu)
+static VOID destroy_boot_menu (menu *menu)
 {
-    con_menu_free( menu );
+    menu_free( menu );
 }
 
-static con_menu *create_boot_menu (INTN selected)
+static menu *create_boot_menu (INTN selected)
 {
     INTN entries = 0;
 
     // 2 boot variants per found config: verbose & verbose+grub-menu
     // 1 reset mode boot option
-    con_menu *boot_menu =
-      con_menu_alloc( (found_cfg_count * 2) + 1, L"SteamOS" );
+    menu *boot_menu = menu_alloc( (found_cfg_count * 2) + 1, L"SteamOS" );
 
     // these sizes are in BYTEs not CHAR16s since SPrint can write
     // wide and narrow chars and therefore needs the space in bytes:
     const UINT64 llen = sizeof( boot_menu->option[ 0 ].label );
     const UINT64 blen = sizeof( boot_menu->option[ 0 ].blurb );
+
+    // This is only accurate if we stay inside the basic multilingual plane
+    // but as long as no-one wants emoji or linear-b or whatever in the boot
+    // menu that's a perfectly valid assumption:
     const UINT64 lchars = llen / sizeof(CHAR16);
     const UINT64 bchars = blen / sizeof(CHAR16);
 
@@ -443,13 +445,13 @@ static INTN text_menu_choose_steamos_loader (INTN entry_default,
                                       opt UINTN timeout)
 {
     INTN selected, rv;
-    const INTN opt console_max_mode = con_get_max_output_mode();
-    con_menu *boot_menu = NULL;
+    menu *boot_menu = NULL;
     boot_menu_option_data *chosen;
 
     if( entry_default < 0 )
         entry_default = 0;
 
+    DEBUG_LOG("create_boot_menu(%d)", entry_default);
     boot_menu = create_boot_menu( entry_default );
 
     // The menu is displayed in reverse order to the least->most wanted order
@@ -462,12 +464,20 @@ static INTN text_menu_choose_steamos_loader (INTN entry_default,
 
     while( TRUE )
     {
-        con_run_menu( boot_menu, selected, (VOID **)&chosen );
+        DEBUG_LOG("run_menu");
+        run_menu( boot_menu, selected, (VOID **)&chosen );
 
         if( chosen->type & BOOT_RESET )
         {
-            if( !con_confirm( L"Really erase personal data?", FALSE ) )
+            if( !confirm( L"Really erase personal data?", FALSE ) )
+            {
+                DEBUG_LOG( "erase data: chosen = NO" );
                 continue;
+            }
+            else
+            {
+                DEBUG_LOG( "erase data: chosen = YES" );
+            }
         }
 
         break;
