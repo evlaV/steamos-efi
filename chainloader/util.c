@@ -227,7 +227,13 @@ strwiden (CONST CHAR8 *narrow)
     CHAR16 *wide = ALLOC_OR_GOTO( l * sizeof(CHAR16), allocfail );
 
     for( UINTN i = 0; i < l; i++ )
-        wide[ i ] = (CHAR16)narrow[ i ];
+    {
+        if( narrow[i] < 0x80 )
+            wide[ i ] = (CHAR16)narrow[ i ];
+        else
+            wide[ i ] = L'�';
+    }
+
     return wide;
 
 allocfail:
