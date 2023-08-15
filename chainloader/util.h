@@ -69,7 +69,7 @@
 #define FLAGFILE_VERBOSE  L"steamcl-verbose"
 #define FLAGFILE_NVDEBUG  L"steamcl-nvram-debug"
 #define FLAGFILE_MENU     L"steamcl-menu"
-
+#define DEFAULT_FONT      L"fonts/default.pf2"
 
 #ifndef EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID
 #define EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL_GUID              \

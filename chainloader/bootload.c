@@ -32,6 +32,7 @@
 #include "console.h"
 #include "partset.h"
 #include "console-ex.h"
+#include "gfx/font.h"
 
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
@@ -183,6 +184,7 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     CHAR16 *verb_path = NULL;
     CHAR16 *vdbg_path = NULL;
     CHAR16 *menu_path = NULL;
+    CHAR16 *font_path = NULL;
 
     loader_file = get_self_file();
     loader->criteria.is_restricted = 0;
@@ -201,6 +203,7 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     verb_path = resolve_path( FLAGFILE_VERBOSE , orig_path, FALSE );
     vdbg_path = resolve_path( FLAGFILE_NVDEBUG , orig_path, FALSE );
     menu_path = resolve_path( FLAGFILE_MENU    , orig_path, FALSE );
+    font_path = resolve_path( DEFAULT_FONT     , orig_path, FALSE );
 
     if( !flag_path && !verb_path && !vdbg_path)
         res = EFI_INVALID_PARAMETER;
@@ -243,6 +246,10 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
 
     if( flag_path && efi_file_exists( root_dir, flag_path ) == EFI_SUCCESS )
         loader->criteria.is_restricted = 1;
+
+    // It's ok if this fails, we'll use a text mode menu if we need one:
+    if( font_path && efi_file_exists( root_dir, font_path ) == EFI_SUCCESS )
+        font_load( root_dir, font_path );
 
     loader->criteria.device_path = get_self_device_path();
 

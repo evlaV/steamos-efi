@@ -26,8 +26,8 @@
 #include "variable.h"
 #include "exec.h"
 #include "console-ex.h"
-#include "console.h"
 #include "debug.h"
+#include "gfx/font.h"
 
 static EFI_STATUS reset_system (IN EFI_RESET_TYPE type,
                                 IN EFI_STATUS     status,
@@ -194,6 +194,8 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
         set_loader_time_exec_usec();
 
     efi_free( cmdline );
+    unload_fonts();
+
     DEBUG_LOG("exec-bootloader" );
     res = exec_bootloader( &steamos );
     ERROR_JUMP( res, cleanup, L"exec failed" );
