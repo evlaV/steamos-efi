@@ -80,6 +80,11 @@ EFI_STATUS efi_file_seek (EFI_FILE_PROTOCOL *file, UINT64 pos)
     return uefi_call_wrapper( file->SetPosition, 2, file, pos );
 }
 
+EFI_STATUS efi_file_tell (EFI_FILE_PROTOCOL *file, UINT64 *pos)
+{
+    return uefi_call_wrapper( file->GetPosition, 2, file, pos );
+}
+
 EFI_STATUS efi_file_exists (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path)
 {
     EFI_FILE_PROTOCOL *target;

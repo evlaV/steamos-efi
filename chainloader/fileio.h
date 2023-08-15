@@ -27,6 +27,8 @@
 // theory be breached. 512 covers us for tha max allowed by vfat.
 #define EFI_FILE_INFO_SAFE_SIZE (SIZE_OF_EFI_FILE_INFO + 512)
 
+#define SEEK_TO_EOF 0xffffffffffffffff
+
 EFI_STATUS efi_file_exists (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path);
 
 EFI_STATUS efi_file_open (EFI_FILE_PROTOCOL *dir,
@@ -46,6 +48,7 @@ EFI_STATUS efi_readdir (EFI_FILE_PROTOCOL *dir,
                         IN OUT UINTN *dirent_size);
 
 EFI_STATUS efi_file_seek (EFI_FILE_PROTOCOL *file, UINT64 pos);
+EFI_STATUS efi_file_tell (EFI_FILE_PROTOCOL *file, UINT64 *pos);
 
 EFI_STATUS efi_file_read (EFI_FILE_PROTOCOL *fh,
                           IN OUT CHAR8 *buf,
