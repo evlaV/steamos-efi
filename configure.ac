@@ -110,6 +110,30 @@ AC_ARG_WITH([pkglibexecdir],
             [pkglibexecdir=${prefix}/lib/$PACKAGE_NAME/$host_cpu-$platform])
 AC_SUBST([pkglibexecdir])
 
+AC_CHECK_PROG([FCMATCH],[fc-match],[fc-match])
+AS_IF([test "x$FCMATCH" = "x"],
+      AC_MSG_ERROR([fontconfig tool fc-match not found]))
+AC_SUBST([FCMATCH])
+
+AC_CHECK_PROG([MKFONT],[grub-mkfont],[grub-mkfont])
+AS_IF([test "x$MKFONT" = "x"],
+      AC_MSG_ERROR([pff2 font creation tool grb-mkfont not found]))
+AC_SUBST([MKFONT])
+
+AC_ARG_WITH([font],
+            [AS_HELP_STRING([--with-font=NAME],
+                            [Override the default font (Noto Sans)])],
+            [font=$with_font],
+            [font="Noto Sans"])
+AC_SUBST([font])
+
+AC_ARG_WITH([fontsize],
+            [AS_HELP_STRING([--with-fontsize=SIZE],
+                            [Override the default font px size (32)])],
+            [fontsize=$with_fontsize],
+            [fontsize=32])
+AC_SUBST([fontsize])
+
 AS_CASE(["$target_cpu"-"$platform"],
         [*-efi], [],
         [AC_MSG_ERROR([Selected CPU/platform "$target_cpu"-"$target_vendor" is not EFI])])

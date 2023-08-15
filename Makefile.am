@@ -27,6 +27,11 @@ am__v_OC_0  = @echo "  OBJCOPY " $@;
 am__v_OC_1  = 
 AM_V_OC     = $(am__v_OC_$(V))
 ############################################################################
+# cosmetic settings to make the font generation obey the verbosity rules
+am__v_MKF_   = $(am__v_MKF_$(AM_DEFAULT_VERBOSITY))
+am__v_MKF_0  = @echo "  MKFONT  " $< $@;
+am__v_MKF_1  = 
+AM_V_MKF     = $(am__v_MKF_$(V))
 
 ############################################################################
 # since efi builds are always cross-compiling, more or less:
@@ -38,6 +43,7 @@ AM_CCASFLAGS 	 = $(HOST_CCASFLAGS) $(CCASFLAGS_DEFAULT)
 empty :=
 
 ACLOCAL_AMFLAGS  = -I m4
+DEFAULT_FONT_FILE=$(shell $(FCMATCH) "$(font)" -f '%{file}')
 
 bin_PROGRAMS        = steamos-bootconf
 pkglibexec_PROGRAMS = steamcl.efi
@@ -47,9 +53,13 @@ bashcompletiondir   = $(BASH_COMPLETION_DIR)
 dist_bashcompletion_DATA = bash-completion/steamcl-install \
                            bash-completion/steamos-bootconf
 endif
-dist_pkgdata_DATA   = data/steamcl-version
+dist_pkgdata_DATA   = data/steamcl-version fonts/default.pf2
 dist_sbin_SCRIPTS   = util/steamcl-install util/steamos-bootdebug
-CLEANFILES          = data/steamcl-version
+CLEANFILES          = data/steamcl-version fonts/default.pf2
+
+fonts/default.pf2: $(DEFAULT_FONT_FILE)
+	@$(MKDIR_P) $(@D)
+	$(AM_V_MKF)$(MKFONT) $(DEFAULT_FONT_FILE) -s $(fontsize) -o $@
 
 # we need a non-standard step here to turn the elf output of the normal-ish
 # link stage into a PE32 blob:

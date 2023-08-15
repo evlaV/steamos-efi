@@ -4,9 +4,8 @@
 # steamos-efi  --  SteamOS EFI Chainloader
 
 # SPDX-License-Identifier: GPL-2.0+
-# Copyright © 2018-2020Collabora Ltd
-# Copyright © 2018-2020 Valve Corporation
-# Copyright © 2018,2019 Vivek Das Mohapatra <vivek@etla.org>
+# Copyright © 2018-2023 Collabora Ltd
+# Copyright © 2018-2023 Valve Corporation
 
 # This file is part of steamos-efi.
 
@@ -355,6 +354,7 @@ update_esp ()
     local esp=$1; shift;
     local bin=$1; shift;
     local ver=$1; shift;
+    local fnt=$1; shift;
     local cfg=$1; shift;
     local bootdir=/efi/"$dst";
     local bootnum=;
@@ -379,17 +379,19 @@ update_esp ()
         echo "Installing bootloader @ $bootdir/steamcl.efi (first install, no boot entry yet)";
     fi;
 
-    mkdir -p ${esp}${bootdir};
+    mkdir -p ${esp}${bootdir}/fonts;
     cp -av ${bin} ${esp}${bootdir}/steamcl.efi;
     cp -av ${ver} ${esp}${bootdir}/steamcl-version;
     cp -av ${cfg} ${esp}${bootdir}/steamos-bootconf;
+    cp -av ${fnt} ${esp}${bootdir}/fonts/default.pf2;
 
     # install the chainloader in the EFI fallback (RC) position in case we boot without an explicit efiboot entry
     # FUTURE: We should skip this step if $espbootloader exists but doesn't look like it's one of ours
     espbootdir=${esp}/efi/boot
     echo "Installing bootloader to ${espbootdir}/bootx64.efi";
-    mkdir -p ${espbootdir};
+    mkdir -p ${espbootdir}/fonts;
     cp -av ${bin} ${espbootdir}/bootx64.efi ||:
+    cp -av ${fnt} ${espbootdir}/fonts/default.pf2 ||:
 
     return 0;
 }
@@ -655,6 +657,7 @@ then
     then
         if update_esp $distrib $esp_mount \
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
+                      $datadir/default.pf2 \
                       $bindir/steamos-bootconf \
                       $boot_entries;
         then

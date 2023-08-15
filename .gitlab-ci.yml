@@ -8,6 +8,7 @@ build:
     - apt update
     - apt install -y build-essential
     - apt install -y autoconf autoconf-archive pkg-config
+    - apt install -y grub fontconfig fonts-noto-core
     - echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list.d/bookworm.list
     - apt update
     - apt install -y gnu-efi/bookworm
