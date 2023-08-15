@@ -19,6 +19,7 @@
 
 #include "menu.h"
 #include "con/menu.h"
+#include "gfx/menu.h"
 
 menu *
 menu_alloc (INTN entries, CONST CHAR16 *title)
@@ -30,7 +31,11 @@ menu_alloc (INTN entries, CONST CHAR16 *title)
     ui->entries = entries;
     ui->label_width = 0;
 
-    ui->engine = con_menu_engine();
+    // try various backends here:
+    ui->engine = gfx_menu_engine();
+
+    if( !ui->engine )
+        ui->engine = con_menu_engine();
 
     DEBUG_LOG( "allocated menu %s<%a>[%d] engine: 0x%x",
                ui->title, ui->engine->type, entries, ui->engine );

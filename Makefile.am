@@ -105,6 +105,8 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/gfx/font.c \
                        chainloader/gfx/pff2.h \
                        chainloader/gfx/pff2.c \
+                       chainloader/gfx/menu.c \
+                       chainloader/gfx/menu.h \
                        $(empty)
 
 steamcl_elf_CFLAGS   = $(EFI_CFLAGS) -DRELEASE_VERSION="\"$(RELEASE_VERSION)\""
