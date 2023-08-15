@@ -35,6 +35,7 @@ AM_LDFLAGS   	 = $(HOST_LDFLAGS)
 AM_CPPFLAGS  	 = $(HOST_CPPFLAGS) $(CPPFLAGS_DEFAULT)
 AM_CCASFLAGS 	 = $(HOST_CCASFLAGS) $(CCASFLAGS_DEFAULT)
 ############################################################################
+empty :=
 
 ACLOCAL_AMFLAGS  = -I m4
 
@@ -93,7 +94,10 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/partset.c \
                        chainloader/partset.h \
                        chainloader/variable.c \
-                       chainloader/variable.h
+                       chainloader/variable.h \
+                       chainloader/gfx/gfx.h \
+                       chainloader/gfx/gfx.c \
+                       $(empty)
 
 steamcl_elf_CFLAGS   = $(EFI_CFLAGS) -DRELEASE_VERSION="\"$(RELEASE_VERSION)\""
 steamcl_elf_CFLAGS  += -I${EFI_INC} -I${EFI_INC}/${build_cpu}
