@@ -2,10 +2,9 @@
 
 # Process this file with autoconf to produce a configure script.
 
-# Copyright (C) 2002,2003,2004,2005,2006,2007,2008,2009,2010  Free Software Foundation, Inc.
-# Copyright © 2018,2020 Collabora Ltd.
-# Copyright © 2020 2020 Valve Corporation
-# Copyright © 2018,2019 Vivek Das Mohapatra <vivek@etla.org>
+# Copyright © 2018-2023 Collabora Ltd.
+# Copyright © 2020-2023 Valve Corporation
+
 #
 # This configure.ac is free software; the author
 # gives unlimited permission to copy and/or distribute it,
@@ -35,7 +34,7 @@ dnl with the prefix "TARGET_" (such as TARGET_CC, TARGET_CFLAGS, etc.) are
 dnl used for the target type. See INSTALL for full list of variables.
 
 AC_PREREQ([2.60])
-AC_INIT([steamos-efi],[0.01],[vivek@collabora.com])
+AC_INIT([steamos-efi],[1.00],[vivek@collabora.com])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 

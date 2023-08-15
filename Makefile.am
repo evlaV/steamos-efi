@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 # This file is part of steamos-efi.
 
-# Copyright © 2018,2019 Collabora Ltd
-# Copyright © 2018,2019 Valve Corporation
-# Copyright © 2018,2019 Vivek Das Mohapatra <vivek@etla.org>
+# Copyright © 2018-2023 Collabora Ltd
+# Copyright © 2018-2023 Valve Corporation
 
 # steamos-efi is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
