@@ -84,6 +84,8 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/chainloader.h \
                        chainloader/fileio.c \
                        chainloader/fileio.h \
+                       chainloader/utf-16.c \
+                       chainloader/utf-16.h \
                        chainloader/util.c \
                        chainloader/util.h \
                        chainloader/exec.c \
