@@ -25,6 +25,8 @@
 
 #include "err.h"
 #include "util.h"
+#include "utf-8.h"
+#include "utf-16.h"
 
 VOID *efi_alloc (UINTN s) { return AllocateZeroPool( s ); }
 VOID  efi_free  (VOID *p) { if( p ) FreePool( p); }
@@ -223,21 +225,17 @@ strwiden (CONST CHAR8 *narrow)
     if( !narrow )
         return NULL;
 
-    UINTN l = strlena( narrow ) + 1;
-    CHAR16 *wide = ALLOC_OR_GOTO( l * sizeof(CHAR16), allocfail );
+    CHAR16 *wide = NULL;
+    UINT32 *codepoints = NULL;
+    UINTN l = utf8_decode( narrow, 0, &codepoints );
 
-    for( UINTN i = 0; i < l; i++ )
+    if( codepoints != NULL )
     {
-        if( narrow[i] < 0x80 )
-            wide[ i ] = (CHAR16)narrow[ i ];
-        else
-            wide[ i ] = L'�';
+        wide = (CHAR16 *)utf16_encode( codepoints, l );
+        efi_free( codepoints );
     }
 
     return wide;
-
-allocfail:
-    return NULL;
 }
 
 CHAR8 *
@@ -246,17 +244,17 @@ strnarrow (CONST CHAR16 *wide)
     if( !wide )
         return NULL;
 
-    UINTN l = StrLen( wide ) + 1;
-    CHAR8 *narrow = ALLOC_OR_GOTO( l, allocfail );
+    CHAR8 *narrow = NULL;
+    UINT32 *codepoints = NULL;
+    UINTN l = utf16_decode( (CHAR8 *)wide, 0, &codepoints );
 
-    // if any high bit is set, set the 8th bit in the narrow character:
-    for( UINTN i = 0; i < l; i++ )
-        narrow[ i ] = (CHAR8)
-          (0xff & ((wide[ i ] & 0xff80) ? (wide[ i ] | 0x80) : wide[ i ]));
+    if( codepoints != NULL )
+    {
+        narrow = utf8_encode( codepoints, l );
+        efi_free( codepoints );
+    }
+
     return narrow;
-
-allocfail:
-    return NULL;
 }
 
 CHAR16 *resolve_path (CONST VOID *path, CONST CHAR16* relative_to, UINTN widen)
