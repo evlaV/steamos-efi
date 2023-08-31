@@ -24,6 +24,7 @@
 #include "font.h"
 #include "pff2.h"
 #include "../util.h"
+#include "../utf-16.h"
 #include "../fileio.h"
 #include "../err.h"
 
@@ -249,7 +250,6 @@ font_string_display_size (FONT *font, CONST CHAR16 *str,
                           UINT16 *width, UINT16 *height)
 {
     GLYPH *g;
-    CHAR16 *c;
     UINT16 w = 0;
     UINT16 h = 0;
     UINT16 l = 0;
@@ -261,9 +261,12 @@ font_string_display_size (FONT *font, CONST CHAR16 *str,
     if( height )
         *height = 0;
 
-    for( c = (CHAR16 *)str; c && *c; c++ )
+    UINT32 *codepoint = NULL;
+    UINTN chars = utf16_decode( (const CHAR8 *)str, 0, &codepoint );
+
+    for( UINTN c = 0; c < chars; c++ )
     {
-        if( (g = font_get_char16_glyph( font, *c )) == NULL )
+        if( (g = font_get_glyph( font, codepoint[c] )) == NULL )
             continue;
 
         str_len++;
@@ -271,6 +274,8 @@ font_string_display_size (FONT *font, CONST CHAR16 *str,
         h  = MAX( h, (g->font ? g->font->ascent + g->font->descent : g->height) );
         l  = MAX( l, (g->font ? g->font->leading : 0 ) );
     }
+
+    efi_free( codepoint );
 
     if( width )
         *width = w;
@@ -458,10 +463,11 @@ font_output_text (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, FONT *font,
     UINT16 o_count = 0;
     UINT16 x_limit;
     UINT16 y_limit;
-    CHAR16 *c;
     GLYPH *g;
     UINT16 width  = 0;
     UINT16 height = 0;
+    UINT32 *codepoint = NULL;
+    UINT32 chars = 0;
 
     gfx_current_resolution( gfx, &x_limit, &y_limit );
 
@@ -475,16 +481,18 @@ font_output_text (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, FONT *font,
     if( dy )
         *dy = 0;
 
-    for( c = txt; c && *c && ((c_limit == 0) || (o_count < c_limit)); c++ )
+    chars = utf16_decode( (const CHAR8 *)txt, 0, &codepoint );
+
+    for( UINTN n = 0; (n < chars) && ((c_limit == 0) || (o_count < c_limit)); n++ )
     {
         UINT16 w = 0;
         UINT16 h = 0;
 
         // no glyph, try next char
-        if( (g = font_get_char16_glyph( font, *c )) == NULL )
+        if( (g = font_get_glyph( font, codepoint[n] )) == NULL )
         {
             // counts towards output even if we cannot find a glyph:
-            DEBUG_LOG("No glyph for cp %02x", (UINT16)*c);
+            DEBUG_LOG("No glyph for cp %04x", codepoint[n]);
             o_count++;
             continue;
         }
