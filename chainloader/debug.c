@@ -126,8 +126,9 @@ cleanup:
 EFI_STATUS debug_log_start_logging (VOID)
 {
     DEBUG_LOG("initialised @ %a", &log_stamp[0]);
-    WARN_STATUS( EFI_UNSUPPORTED, L"dummy warning (test logging)" );
-    ERROR_RETURN( EFI_INVALID_PARAMETER, 1, L"dummy error (test logging)" );
+    WARN_STATUS( EFI_UNSUPPORTED, L"dummy warnings x2 follow (logging tests)" );
+    WARN_STATUS( EFI_INVALID_LANGUAGE, L"test: გამარჯობა Вітаю こんにちは 你好" );
+    ERROR_RETURN( EFI_INVALID_PARAMETER, 1, L"test: dummy error" );
 }
 
 VOID debug_log_close (VOID)
