@@ -133,6 +133,11 @@ AC_ARG_WITH([fontsize],
             [fontsize=32])
 AC_SUBST([fontsize])
 
+AC_ARG_ENABLE([charset-tests],
+              [AS_HELP_STRING([--enable-charset-tests],
+                              [Compile run-time unicode encode/decode tests])],
+              [AC_DEFINE(CHARSET_TESTS)])
+
 AS_CASE(["$target_cpu"-"$platform"],
         [*-efi], [],
         [AC_MSG_ERROR([Selected CPU/platform "$target_cpu"-"$target_vendor" is not EFI])])

@@ -92,6 +92,8 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        chainloader/util.h \
                        chainloader/exec.c \
                        chainloader/exec.h \
+                       chainloader/charset-tests.c \
+                       chainloader/charset-tests.h \
                        chainloader/config.c \
                        chainloader/config.h \
                        chainloader/con/console.c \

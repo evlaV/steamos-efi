@@ -32,6 +32,7 @@
 #include "partset.h"
 #include "gfx/font.h"
 #include "menu.h"
+#include "charset-tests.h"
 
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
@@ -249,6 +250,10 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     // It's ok if this fails, we'll use a text mode menu if we need one:
     if( font_path && efi_file_exists( root_dir, font_path ) == EFI_SUCCESS )
         font_load( root_dir, font_path );
+
+#ifdef CHARSET_TESTS
+    charset_tests( root_dir, orig_path );
+#endif
 
     loader->criteria.device_path = get_self_device_path();
 
