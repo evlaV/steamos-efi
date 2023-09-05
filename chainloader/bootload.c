@@ -34,6 +34,14 @@
 #include "menu.h"
 #include "charset-tests.h"
 
+// Maximum number of boot attempts before we turn the boot menu on.
+// We do see rare boot failures - we don't want to trigger the menu
+// for those. If we're really unlucky we see two boot failures in a
+// row. We have never (as far as we know) seen 3 boot failures in a
+// row that didn't require manual intervention. We _could_ probably
+// crank this down to 2 - lower than that is likely too alarmist.
+ #define MAX_BOOT_FAILURES 3
+
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
 
@@ -119,6 +127,7 @@ typedef struct
     EFI_GUID uuid;
     UINT64 at;
     UINT64 boot_time;
+    UINT64 tries;
     BOOLEAN disabled;
 } found_cfg;
 
@@ -158,6 +167,7 @@ typedef struct
        dst.uuid        = src.uuid;        \
        dst.disabled    = src.disabled;    \
        dst.boot_time   = src.boot_time;   \
+       dst.tries       = src.tries;       \
        dst.at          = src.at;          })
 
 static UINTN swap_cfgs (found_cfg *f, UINTN a, UINTN b)
@@ -961,6 +971,7 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
         found[ j ].at        = get_conf_uint( conf, "boot-requested-at" );
         found[ j ].boot_time = get_conf_uint( conf, "boot-time" );
         found[ j ].label     = strwiden( get_conf_str( conf, "title" ) );
+        found[ j ].tries     = get_conf_uint( conf, "boot-attempts" );
 
         // figure out a suitable label for this entry based on its config file
         // which in turn should be based on the image slot identifier:
@@ -1074,8 +1085,10 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
     }
 
     // if a oneshot boot was requested from the last OS run or
-    // we somehow failed to pick a valid image, display a menu:
-    if( oneshot || (selected < 0) )
+    // we somehow failed to pick a valid image, or the selected
+    // image has too many boot failures then display the menu:
+    if( oneshot || (selected < 0) ||
+        found[ selected ].tries >= MAX_BOOT_FAILURES )
     {
         display_menu = TRUE;
     }

@@ -52,6 +52,8 @@ This file will focus more on the actual implementation details.
     * If any of the following are true:
       * oneshot is set
       * No config was picked
+      * boot-attempts is >= 3
+      * the (…) key was held down during power on (Deck only)
       * <f3> is being held down
         * A boot menu is displayed to let the user choose a boot option
   * If no boot option has been picked yet the newest SteamOS entry is selected

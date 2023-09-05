@@ -26,8 +26,9 @@ The meanings of these entries are as follows:
 * boot-requested-at: datestamp value at which reboot was requested
 * boot-other: if the image in question wanted you to boot the _other_ image
 * boot-attempts: the number of _failed_ boot attempts
-  * the bootloader increments this at the start of each attempt
+  * the stage 2 bootloader increments this at the start of each attempt
   * the OS sets it back to 0 on success
+  * if this is "too high" then boot menu is displayed by the stage 1 loader
 * boot-count: number of _successful_ boot attempts
 * boot-time: datestamp value when a successful boot of this image last occurred
 * image-invalid: set by the bootloader (or possibly OS) to indicate the image
