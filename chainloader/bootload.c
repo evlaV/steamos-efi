@@ -374,9 +374,9 @@ static menu *create_boot_menu (INTN selected)
         boot_menu->option[ o ].data = odata;
         odata = NULL;
 
-        SPrint( label, llen, L"%s %s",
-                current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
-                ui_label );
+        sprintf_w( label, llen, L"%s %s",
+                   current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
+                   ui_label );
 
         prepare_boot_info( &found[i], blurb, blen );
 
@@ -395,10 +395,10 @@ static menu *create_boot_menu (INTN selected)
         boot_menu->option[ o ].data = odata;
         odata = NULL;
 
-        SPrint( label, llen,
-                L"%s %s",
-                current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
-                ui_label );
+        sprintf_w( label, llen,
+                   L"%s %s",
+                   current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
+                   ui_label );
 
         prepare_boot_info( &found[i], blurb, blen );
 
@@ -451,10 +451,10 @@ static menu *create_boot_menu (INTN selected)
         for( UINTN s = 0; s < offset; s++ )
             label[ s ] = L' ';
 
-        SPrint( label + offset, llen - (offset * sizeof(*label)),
-                BOOT_MENU_RESET_TEXT );
-        SPrint( blurb, blen,
-                L"Erase games, accounts, passwords, networks from deck" );
+        sprintf_w( label + offset, llen - (offset * sizeof(*label)),
+                   BOOT_MENU_RESET_TEXT );
+        sprintf_w( blurb, blen,
+                   L"Erase games, accounts, passwords, networks from deck" );
 
         label[ lchars - 1 ] = L'\0';
         blurb[ bchars - 1 ] = L'\0';
