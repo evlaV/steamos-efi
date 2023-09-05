@@ -291,6 +291,30 @@ static VOID destroy_boot_menu (menu *menu)
     menu_free( menu );
 }
 
+static void prepare_boot_info (found_cfg *entry, CHAR16 *blurb, UINT64 len)
+{
+    if( entry->tries < 1 )
+    {
+        if( entry->boot_time )
+            sprintf_w( blurb, len,
+                       L"Booted @ %04lu-%02lu-%02lu %02lu:%02lu",
+                       SPLIT_TIME( entry->boot_time ) );
+        else
+            sprintf_w( blurb, len, L"-unknown-boot-time-" );
+    }
+    else
+    {
+        if( entry->boot_time )
+            sprintf_w( blurb, len,
+                       L"%d failure(s) since %04lu-%02lu-%02lu %02lu:%02lu",
+                       entry->tries, SPLIT_TIME( entry->boot_time ) );
+        else
+            sprintf_w( blurb, len, L"%d failure(s) recorded", entry->tries );
+    }
+
+    blurb[ len / sizeof(*blurb) ] = L'\0';
+}
+
 static menu *create_boot_menu (INTN selected)
 {
     INTN entries = 0;
@@ -354,15 +378,9 @@ static menu *create_boot_menu (INTN selected)
                 current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
                 ui_label );
 
-        if( found[ i ].boot_time )
-            SPrint( blurb, blen,
-                    L"Booted @ %04lu-%02lu-%02lu %02lu:%02lu",
-                    SPLIT_TIME( found[ i ].boot_time ) );
-        else
-            SPrint( blurb, blen, L"-unknown-boot-time-" );
+        prepare_boot_info( &found[i], blurb, blen );
 
         label[ lchars - 1 ] = L'\0';
-        blurb[ bchars - 1 ] = L'\0';
 
         entries++;
 
@@ -382,15 +400,9 @@ static menu *create_boot_menu (INTN selected)
                 current ? BOOT_MENU_PREFIX_CUR : BOOT_MENU_PREFIX_PRV,
                 ui_label );
 
-        if( found[ i ].boot_time )
-            SPrint( blurb, blen,
-                    L"Booted @ %04lu-%02lu-%02lu %02lu:%02lu",
-                    SPLIT_TIME( found[ i ].boot_time ) );
-        else
-            SPrint( blurb, blen, L"-unknown-boot-time-" );
+        prepare_boot_info( &found[i], blurb, blen );
 
         label[ lchars - 1 ] = L'\0';
-        blurb[ bchars - 1 ] = L'\0';
 
         entries++;
     }
