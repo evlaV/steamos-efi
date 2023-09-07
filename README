@@ -28,6 +28,8 @@ This file will focus more on the actual implementation details.
        ie don't check USB sticks or other hard discs for SteamOS images
    * FLAGFILE_VERBOSE  "steamcl-verbose"
      * Emit some debug messages to stdout.
+   * FLAGFILE_MENU "steamcl-menu"
+     * Display the boot menu
    * FLAGFILE_NVDEBUG  "steamcl-nvram-debug"
      * Log some extra debug info in UEFI variables
      * The chainloader does not write to disc
@@ -47,6 +49,7 @@ This file will focus more on the actual implementation details.
         any that don't
     * Each sorted bootconf is then checked, starting with the newest.
       * If boot-other is set, we skip this config and proceed to the next
+      * Use of boot-other is DEPRECATED, no user tools set this by default
       * If not, we choose this image
   * The chainloader checks for the "oneshot" UEFI variable
     * If any of the following are true:
