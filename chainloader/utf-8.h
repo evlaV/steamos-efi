@@ -26,5 +26,5 @@
 #define REPLACEMENT_CHAR 0xfffd
 
 UINT8  utf8_encode_cp (UINT32 cp, UINT8 buf[6]);
-CHAR8 *utf8_encode    (const UINT32 *codepoints, INTN len);
+UINT8 *utf8_encode    (const UINT32 *codepoints, INTN len);
 INTN   utf8_decode    (const CHAR8 *encoded, UINTN bytes, UINT32 **codepoints);

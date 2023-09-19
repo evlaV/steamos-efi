@@ -74,16 +74,16 @@ CHAR8 *utf16_encode (const UINT32 *codepoints, INTN len)
         return NULL;
 
     UINTN esize = (len * 4);
-    CHAR8 *encoded = efi_alloc( esize + 2 ); // max space required + L'\0'
-    CHAR8 *buf = encoded;
-    const CHAR8 *end = encoded + esize - 4; // need 4 bytes to safely encode
+    UINT8 *encoded = efi_alloc( esize + 2 ); // max space required + L'\0'
+    UINT8 *buf = encoded;
+    const UINT8 *end = encoded + esize - 4; // need 4 bytes to safely encode
 
     for( INTN n = 0; (n < len) && (buf <= end); n++ )
         buf += utf16_encode_cp( codepoints[n], buf );
 
     *(CHAR16 *)buf = L'\0';
 
-    return encoded;
+    return (CHAR8 *)encoded;
 }
 
 

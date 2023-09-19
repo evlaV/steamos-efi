@@ -244,7 +244,7 @@ strnarrow (CONST CHAR16 *wide)
     if( !wide )
         return NULL;
 
-    CHAR8 *narrow = NULL;
+    UINT8 *narrow = NULL;
     UINT32 *codepoints = NULL;
     UINTN l = utf16_decode( (CHAR8 *)wide, 0, &codepoints );
 
@@ -254,7 +254,7 @@ strnarrow (CONST CHAR16 *wide)
         efi_free( codepoints );
     }
 
-    return narrow;
+    return (CHAR8 *)narrow;
 }
 
 CHAR16 *resolve_path (CONST VOID *path, CONST CHAR16* relative_to, UINTN widen)

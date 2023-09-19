@@ -101,15 +101,15 @@ UINT8 utf8_encode_cp (UINT32 cp, UINT8 buf[6])
     return 0;
 }
 
-CHAR8 *utf8_encode (const UINT32 *codepoints, INTN len)
+UINT8 *utf8_encode (const UINT32 *codepoints, INTN len)
 {
     if( len < 1 )
         return NULL;
 
     UINTN esize = (len * 4);
-    CHAR8 *encoded = efi_alloc( esize + 1 ); // max space required + NUL
-    CHAR8 *buf = encoded;
-    const CHAR8 *end = encoded + esize - 4; // need 4 bytes to safely encode
+    UINT8 *encoded = efi_alloc( esize + 1 ); // max space required + NUL
+    UINT8 *buf = encoded;
+    const UINT8 *end = encoded + esize - 4; // need 4 bytes to safely encode
 
     for( INTN n = 0; (n < len) && (buf <= end); n++ )
         buf += utf8_encode_cp( codepoints[n], buf );
