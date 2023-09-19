@@ -346,12 +346,12 @@ VOID debug_glyph (UINT32 cp)
 }
 
 static inline BOOLEAN
-nth_bit_is_set (CHAR8 *src, UINT32 offset)
+nth_bit_is_set (UINT8 *src, UINT32 offset)
 {
     return (src[offset / 8] & (0x80 >> (offset % 8))) ? 1 : 0;
 }
 
-VOID debug_1bpp_bitmap (CHAR8 *src, UINT32 width, UINT32 height)
+static VOID debug_1bpp_bitmap (UINT8 *src, UINT32 width, UINT32 height)
 {
     CHAR8 *row = efi_alloc( width + 1 );
 
@@ -367,7 +367,7 @@ VOID debug_1bpp_bitmap (CHAR8 *src, UINT32 width, UINT32 height)
     efi_free( row );
 }
 
-VOID debug_32bpp_bitmap (UINT32 *src, UINT32 width, UINT32 height)
+static VOID debug_32bpp_bitmap (UINT32 *src, UINT32 width, UINT32 height)
 {
     CHAR8 *row = efi_alloc( width + 1 );
     UINT32 colour = 0;

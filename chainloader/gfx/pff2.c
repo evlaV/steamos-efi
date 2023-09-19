@@ -88,15 +88,15 @@ typedef enum _PFF2_SECTION
 typedef struct _font_section
 {
     EFI_FILE_PROTOCOL *file;
-    CHAR8  name[4];
+    UINT8  name[4];
     UINT32 len;
     INT8   eof;
 } FONT_SECTION;
 
-static EFI_STATUS readbuf (EFI_FILE_PROTOCOL *file, CHAR8 *buf, UINTN size)
+static EFI_STATUS readbuf (EFI_FILE_PROTOCOL *file, UINT8 *buf, UINTN size)
 {
     UINTN wanted = size;
-    EFI_STATUS res = efi_file_read( file, buf, &size );
+    EFI_STATUS res = efi_file_read( file, (CHAR8 *)buf, &size );
 
     if( (wanted > size) && (res == EFI_SUCCESS) )
         res = EFI_END_OF_FILE;
@@ -104,7 +104,7 @@ static EFI_STATUS readbuf (EFI_FILE_PROTOCOL *file, CHAR8 *buf, UINTN size)
     return res;
 }
 
-static EFI_STATUS readsect (FONT_SECTION *sect, CHAR8 *buf, UINTN size)
+static EFI_STATUS readsect (FONT_SECTION *sect, UINT8 *buf, UINTN size)
 {
     EFI_STATUS res;
 
@@ -119,7 +119,7 @@ static EFI_STATUS readsect (FONT_SECTION *sect, CHAR8 *buf, UINTN size)
 static EFI_STATUS readsect_be32 (FONT_SECTION *sect, UINT32 *buf)
 {
     UINT32 raw = 0;
-    EFI_STATUS res = readsect( sect, (CHAR8 *)&raw, sizeof(UINT32) );
+    EFI_STATUS res = readsect( sect, (UINT8 *)&raw, sizeof(UINT32) );
 
     if( res == EFI_SUCCESS )
         *buf = BE_TO_LE32( raw );
@@ -129,7 +129,7 @@ static EFI_STATUS readsect_be32 (FONT_SECTION *sect, UINT32 *buf)
     return res;
 }
 
-static const CHAR8 *SN(CHAR8 *x)
+static const CHAR8 *SN(UINT8 *x)
 {
     static CHAR8 z[5]; mem_copy( z, x, 4 ); z[ 4 ] = 0; return z;
 }
@@ -240,7 +240,7 @@ section_to_string (FONT_SECTION *sect, CHAR8 **buf)
                   L"Integer overflow reading font section %a", SN(sect->name) );
 
     *buf = efi_alloc( size );
-    res = readsect( sect, *buf, sect->len );
+    res = readsect( sect, (UINT8 *)*buf, sect->len );
     (*buf)[ sect->len ] = 0;
     ERROR_JUMP( res, cleanup,
                 L"IO error reading font section %a", SN(sect->name) );
@@ -266,7 +266,7 @@ section_to_short (FONT_SECTION *sect, UINT16 *value)
                       L"%a wrong size for a UINT16", SN(sect->name) );
     }
 
-    res = readsect( sect, (CHAR8 *)&raw, 2 );
+    res = readsect( sect, (UINT8 *)&raw, 2 );
     ERROR_RETURN( res, res, L"error reading uint from %a", SN(sect->name) );
 
     *value = BE_TO_LE16(raw);
@@ -356,7 +356,7 @@ section_to_void ( FONT_SECTION *sect )
 static EFI_STATUS
 read_be_uint16 (EFI_FILE_PROTOCOL *file, UINT16 *val)
 {
-    EFI_STATUS res = readbuf( file, (CHAR8 *)val, sizeof(*val) );
+    EFI_STATUS res = readbuf( file, (UINT8 *)val, sizeof(*val) );
 
     *val = BE_TO_LE16(*val);
 
@@ -505,7 +505,7 @@ pff2_load_file (EFI_FILE_PROTOCOL *src, FONT *font)
 {
     EFI_STATUS res;
     FONT_SECTION section;
-    CHAR8 magic[4];
+    UINT8 magic[4];
 
     res = open_font_section( src, &section );
     ERROR_RETURN( res, res, L"Open font section failed" );
