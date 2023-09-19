@@ -18,6 +18,8 @@
 # along with steamos-efi.  If not, see <http://www.gnu.org/licenses/>.
 
 AUTOMAKE_OPTIONS = subdir-objects
+CHAR_TYPES       = -fshort-wchar -funsigned-char
+CODING_STANDARDS = -std=gnu18 $(CHAR_TYPES) -Wall -Wextra -Werror
 
 ############################################################################
 # cosmetic settings to make the objcopy output tidy when using silent rules
@@ -125,7 +127,7 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        $(empty)
 
 steamcl_elf_CFLAGS   = $(EFI_CFLAGS) -DRELEASE_VERSION="\"$(RELEASE_VERSION)\""
-steamcl_elf_CFLAGS  += -I${EFI_INC} -I${EFI_INC}/${build_cpu} -funsigned-char
+steamcl_elf_CFLAGS  += -I${EFI_INC} -I${EFI_INC}/${build_cpu} $(CODING_STANDARDS)
 steamcl_elf_LDFLAGS  = $(LDFLAGS) $(EFI_LDFLAGS)
 steamcl_elf_LDADD    = $(EFI_EXTRALIBS)
 steamcl_elf_LINK     = $(LD) $(steamcl_elf_LDFLAGS) -o $@
@@ -142,6 +144,6 @@ steamos_bootconf_SOURCES = bootconf/bootconf.c     \
                            chainloader/partset.h   \
                            chainloader/util.h      \
                            chainloader/err.h
-steamos_bootconf_CFLAGS  = -fno-pic -DNO_EFI_TYPES -fshort-wchar --std=gnu99
+steamos_bootconf_CFLAGS  = -fno-pic -DNO_EFI_TYPES $(CODING_STANDARDS)
 steamos_bootconf_LDFLAGS = -static
 
