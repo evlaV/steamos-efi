@@ -663,7 +663,7 @@ UINTN get_chainloader_boot_attempts ()
     return res;
 }
 
-typedef struct { CHAR8 header[2]; CHAR8 state[1]; } hw_button_state;
+typedef struct { UINT8 header[2]; UINT8 state[1]; } hw_button_state;
 
 UINTN get_hw_config_button_state (void)
 {
