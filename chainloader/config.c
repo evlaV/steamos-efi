@@ -263,11 +263,11 @@ UINT64 get_conf_uint (const cfg_entry *config, char *name)
     return c ? c->value.number.u : 0;
 }
 
-CHAR8 *get_conf_str (const cfg_entry *config, char *name)
+const CHAR8 *get_conf_str (const cfg_entry *config, char *name)
 {
     const cfg_entry *c = get_conf_item( config, (CHAR8 *)name );
 
-    return c ? &c->value.string.bytes[ 0 ] : NULL;
+    return c ? (const CHAR8 *)&c->value.string.bytes[ 0 ] : NULL;
 }
 
 cfg_entry *new_config (VOID)

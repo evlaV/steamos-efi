@@ -953,7 +953,7 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
             continue;
 
         // If the config specied an alternate loader path, expand it here:
-        CHAR8 *alt_cfg = get_conf_str( conf, "loader" );
+        const CHAR8 *alt_cfg = get_conf_str( conf, "loader" );
         if( alt_cfg && *alt_cfg )
         {
             CHAR16 *alt_ldr = resolve_path( alt_cfg, OLDCONFPATH, 1 );
@@ -963,7 +963,6 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
             else
                 efi_free( alt_ldr );
         }
-        efi_free( alt_cfg );
 
         // use the default bootloader:
         if( !found[ j ].loader )

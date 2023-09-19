@@ -60,7 +60,7 @@ const cfg_entry *get_conf_item (const cfg_entry *config, const CHAR8 *name);
 
 UINT64 get_conf_uint (const cfg_entry *config, char *name);
 
-CHAR8 *get_conf_str (const cfg_entry *config, char *name);
+const CHAR8 *get_conf_str (const cfg_entry *config, char *name);
 
 cfg_entry *new_config (VOID);
 
