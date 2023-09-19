@@ -62,8 +62,8 @@ static UINTN set_config_item_from_line (cfg_entry *item, CHAR8 *line)
     UINTN ll = strlen_a( line );
     CHAR8 *start = NULL;
     UINTN vsize = 0;
-    CHAR8 *nstart = NULL;
-    CHAR8 *nend = NULL;
+    UINT8 *nstart = NULL;
+    UINT8 *nend = NULL;
     UINTN place = 1;
     // no room for "NAME:"
     if( ll <= nl + 1 )

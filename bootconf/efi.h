@@ -49,6 +49,7 @@ typedef unsigned char CHAR8;
 typedef uint64_t UINT64;
 typedef uint64_t UINTN;
 typedef char16_t CHAR16;
+typedef uint8_t  UINT8;
 
 int Print(const char16_t *f, ...);
 
