@@ -254,14 +254,14 @@ gfx_alloc_blitbuffer (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
 }
 
 static inline BOOLEAN
-nth_bit_is_set (CHAR8 *src, UINT32 offset)
+nth_bit_is_set (UINT8 *src, UINT32 offset)
 {
     return (src[offset / 8] & (0x80 >> (offset % 8))) ? 1 : 0;
 }
 
 EFI_STATUS
 gfx_convert_bitmap (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
-                    CHAR8 *src,
+                    UINT8 *src,
                     UINT16 width,
                     UINT16 height,
                     UINT16 bpp,

@@ -28,6 +28,7 @@
 #include <efi.h>
 #include <efilib.h>
 #include <efiprot.h>
+#include "../util.h"
 
 typedef struct _blit_buffer
 {
@@ -99,7 +100,7 @@ gfx_blit_in (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
              UINT16 y);     // y-coord (origin at top)
 
 EFI_STATUS gfx_convert_bitmap (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
-                               CHAR8 *src,
+                               UINT8 *src,
                                UINT16 width,
                                UINT16 height,
                                UINT16 bpp,
