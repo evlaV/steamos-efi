@@ -23,6 +23,16 @@
 #include "config.h"
 #include "console-ex.h"
 
+typedef enum
+{
+    MENU_REASON_NONE = 0,
+    MENU_REASON_FAILSAFE,    // triggered by boot failure count or similar
+    MENU_REASON_INTERACTIVE, // keypress or similar
+    MENU_REASON_CONFIG,      // flag file or boot config or similar
+    MENU_REASON_CMDLINE,     // UEFI cmdline
+    MENU_REASON_MISC,        // some other reason
+} MENU_REASON;
+
 typedef struct
 {
     EFI_HANDLE partition;
@@ -38,8 +48,8 @@ typedef struct
 } bootloader;
 
 EFI_STATUS EFIAPI request_menu (IN EFI_KEY_DATA *k opt);
-BOOLEAN boot_menu_requested (VOID);
-VOID request_boot_menu (VOID);
+MENU_REASON boot_menu_requested (VOID);
+VOID request_boot_menu (MENU_REASON why);
 VOID request_verbose_boot (VOID);
 EFI_STATUS console_mode (VOID);
 

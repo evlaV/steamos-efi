@@ -112,7 +112,7 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
         get_image_cmdline( steamcl, &cmdline );
 
         if( cmdline && strstr_w( cmdline, L"display-menu" ) )
-            request_boot_menu();
+            request_boot_menu( MENU_REASON_CMDLINE );
 
         if( cmdline && strstr_w( cmdline, L"verbose" ) )
         {
@@ -122,7 +122,7 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
     }
 
     // no need to watch for keys if the command line already asked for a menu
-    if( !boot_menu_requested() )
+    if( boot_menu_requested() == MENU_REASON_NONE )
     {
         reset_console();
         bound_key = bind_key( SCAN_NULL, CHAR_TAB, request_menu );
@@ -168,7 +168,7 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
 
     // Was the ⋯ button pressed on boot (ie before the chainloader started)?
     if( get_hw_config_button_state() != 0 )
-        request_boot_menu();
+        request_boot_menu( MENU_REASON_INTERACTIVE );
 
     // the menu will be invoked here if it's been requested,
     // either by keypress or by nvram variables set before reboot

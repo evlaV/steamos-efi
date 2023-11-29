@@ -48,14 +48,14 @@
 // this is x86_64 specific
 #define EFI_STUB_ARCH 0x8664
 
-static BOOLEAN display_menu = FALSE;
+static MENU_REASON display_menu = MENU_REASON_NONE;
 static BOOLEAN verbose_boot = FALSE;
 
 // This is for hooking up to EFI keypress callbacks
 EFI_STATUS EFIAPI
 request_menu (IN EFI_KEY_DATA *k opt)
 {
-    display_menu = TRUE;
+    display_menu = MENU_REASON_INTERACTIVE;
 
     return EFI_SUCCESS;
 }
@@ -65,12 +65,12 @@ VOID request_verbose_boot (VOID)
     verbose_boot = TRUE;
 }
 
-VOID request_boot_menu (VOID)
+VOID request_boot_menu (MENU_REASON why)
 {
-    display_menu = TRUE;
+    display_menu = why;
 }
 
-BOOLEAN boot_menu_requested (VOID)
+MENU_REASON boot_menu_requested (VOID)
 {
     return display_menu;
 }
@@ -252,7 +252,7 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
 
     if( menu_path )
         if( efi_file_exists( root_dir, menu_path ) == EFI_SUCCESS )
-            request_boot_menu();
+            request_boot_menu( MENU_REASON_CONFIG );
 
     if( flag_path && efi_file_exists( root_dir, flag_path ) == EFI_SUCCESS )
         loader->criteria.is_restricted = 1;
@@ -510,7 +510,7 @@ static INTN text_menu_choose_steamos_loader (INTN entry_default,
         break;
     }
 
-    display_menu = FALSE;
+    display_menu = MENU_REASON_NONE;
 
     if( chosen )
     {
@@ -1101,13 +1101,13 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
     if( oneshot || (selected < 0) ||
         found[ selected ].tries >= MAX_BOOT_FAILURES )
     {
-        display_menu = TRUE;
+        display_menu = MENU_REASON_FAILSAFE;
     }
 
     opt_type boot_type = BOOT_NORMAL;
 
     // Let the user pick via menu:
-    if( display_menu )
+    if( display_menu != MENU_REASON_NONE )
     {
         BOOLEAN unique = TRUE;
         for( UINTN i = 0; i < found_cfg_count; i++ )
