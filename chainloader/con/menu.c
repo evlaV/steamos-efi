@@ -30,6 +30,7 @@
 #include "../util.h"
 #include "../menu.h"
 #include "../console-ex.h"
+#include "../timer.h"
 #include "console.h"
 
 //
@@ -259,6 +260,9 @@ static INTN con_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 
     render_menu( ui, selected );
 
+    if( ui->timer )
+        timer_sched( ui->timer, TRUE, 1000 );
+
     con_set_output_attribute( DEFAULT_ATTRIBUTES );
     con_reset( FALSE );
 
@@ -273,9 +277,17 @@ static INTN con_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
         res = wait_for_key( &key, 100 );
 
         if( res == EFI_TIMEOUT )
+        {
+            if( ui->timeout > 0 && ui->countdown <= 0 )
+                break;
+
             continue;
+        }
 
         ERROR_BREAK( res, L"wait_for_key( 0x%x, %lu )", &key );
+
+        // key press. reset timeout countdown:
+        ui->countdown = ui->timeout;
 
         if( ( key.UnicodeChar == CHAR_LINEFEED ) ||
             ( key.UnicodeChar == CHAR_CARRIAGE_RETURN ) )
