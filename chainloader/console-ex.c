@@ -24,6 +24,7 @@
 
 #include "err.h"
 #include "util.h"
+#include "con/console.h"
 #include "console-ex.h"
 
 static EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *console;
@@ -100,4 +101,61 @@ unbind_key (EFI_HANDLE *binding)
 
     return uefi_call_wrapper( console->UnregisterKeyNotify, 2,
                               console, binding );
+}
+
+EFI_STATUS
+wait_for_key (EFI_INPUT_KEY *key, UINT64 millisec)
+{
+    EFI_STATUS res;
+    EFI_EVENT waiters[2];
+    // our queue is at most 2 deep, so this can only be 1 or 0 after a wait
+    UINTN index = 2;
+
+    if( key )
+    {
+        key->ScanCode = SCAN_NULL;
+        key->UnicodeChar = CHAR_NULL;
+    }
+
+    // we're only allowing a minute maximum for the timeout, if specified:
+    millisec = MIN( millisec, 60000 );
+
+    if( millisec > 0 )
+    {
+        // timer is measured in 100 ns units
+        UINTN index = 2;
+        UINT64 hns = millisec * 10000;
+        EFI_EVENT timer;
+
+        res = uefi_call_wrapper( BS->CreateEvent, 5,
+                                 EVT_TIMER, 0, NULL, NULL, &timer);
+        ERROR_RETURN( res, res, L"Creating timeout" );
+
+        res = uefi_call_wrapper( BS->SetTimer, 3, timer, TimerRelative, hns );
+        ERROR_RETURN( res, res, L"Starting %lu ticks timer", hns );
+
+        waiters[0] = ST->ConIn->WaitForKey;
+        waiters[1] = timer;
+
+        res = uefi_call_wrapper( BS->WaitForEvent, 3, 2, waiters, &index );
+
+        // the timeout event fired successfully before a keypress
+        if( !EFI_ERROR(res) )
+        {
+            if( index == 1 )
+                res = EFI_TIMEOUT;
+            else if ( key )
+                res = con_read_key( key );
+        }
+    }
+    else
+    {
+        waiters[0] = ST->ConIn->WaitForKey;
+        res = uefi_call_wrapper( BS->WaitForEvent, 3, 1, waiters, &index );
+
+        if( !EFI_ERROR(res) )
+            res = con_read_key( key );
+    }
+
+    return res;
 }

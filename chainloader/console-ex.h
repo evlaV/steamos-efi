@@ -18,10 +18,10 @@
 
 // You should have received a copy of the GNU General Public License
 // along with steamos-efi.  If not, see <http://www.gnu.org/licenses/>.
+#include <eficon.h>
 
 // ============================================================================
 // SIMPLE_TEXT_INPUT_EX_PROTOCOL
-
 #ifndef EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID
 #warning "Using roll-your-own EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID defs"
 
@@ -97,3 +97,9 @@ typedef struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL
 EFI_HANDLE *bind_key (UINT16 scan, CHAR16 chr, IN EFI_KEY_NOTIFY_FUNCTION handler);
 EFI_STATUS unbind_key (EFI_HANDLE *binding);
 EFI_STATUS reset_console (VOID);
+
+// wait for at keypress, optionally with timeout (max 1 minute _if set_)
+// EFI_TIMEOUT if millisec delay passed without a keypress
+// EFI_SUCCESS if a keypress occurred and is waiting for con_read_key
+// scan code and char will be SCAN_NULL and CHAR_NULL if no key read
+EFI_STATUS wait_for_key (EFI_INPUT_KEY *key, UINT64 millisec);
