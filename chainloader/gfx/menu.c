@@ -25,7 +25,7 @@
 #include "../err.h"
 #include "../util.h"
 #include "../menu.h"
-#include "../con/console.h"
+#include "../console-ex.h"
 #include "gfx.h"
 #include "font.h"
 
@@ -335,11 +335,13 @@ static INTN gfx_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 
         set_output_attributes( priv, ATTR_DEFAULT );
 
-        res = WaitForSingleEvent( ST->ConIn->WaitForKey, 0 );
-        ERROR_BREAK( res, L"Could not WaitForSingleEvent: %r\n", res );
+        // we want to wake up every 100 ms to check for a menu timeout
+        res = wait_for_key( &key, 100 );
 
-        res = con_read_key( &key );
-        ERROR_BREAK( res, L"Could not con_read_key: %r\n", res );
+        if( res == EFI_TIMEOUT )
+            continue;
+
+        ERROR_BREAK( res, L"wait_for_key( 0x%x, %lu )", &key );
 
         if( ( key.UnicodeChar == CHAR_LINEFEED ) ||
             ( key.UnicodeChar == CHAR_CARRIAGE_RETURN ) )
