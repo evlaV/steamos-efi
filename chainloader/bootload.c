@@ -478,8 +478,9 @@ static INTN text_menu_choose_steamos_loader (INTN entry_default,
     if( entry_default < 0 )
         entry_default = 0;
 
-    DEBUG_LOG("create_boot_menu(%d)", entry_default);
+    DEBUG_LOG("create_boot_menu(%d) [timeout: %lu]", entry_default, timeout);
     boot_menu = create_boot_menu( entry_default );
+    menu_timeout( boot_menu, timeout );
 
     // The menu is displayed in reverse order to the least->most wanted order
     // of the found configs.
@@ -1109,6 +1110,7 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
     // Let the user pick via menu:
     if( display_menu != MENU_REASON_NONE )
     {
+        UINTN timeout = 0;
         BOOLEAN unique = TRUE;
         for( UINTN i = 0; i < found_cfg_count; i++ )
             for( UINTN k = i + 1; k < found_cfg_count; k++ )
@@ -1128,15 +1130,36 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         }
 
         DEBUG_LOG("displaying bootloader menu");
-#if 0
-        UINTN timeout = get_loader_config_timeout();
 
         if( oneshot )
+        {
             timeout = get_loader_config_timeout_oneshot();
-#endif
+        }
+        else
+        {
+            switch( display_menu )
+            {
+                // placeholder: constant to be replaced with a more
+                // complex failure-count aware setting:
+              case MENU_REASON_FAILSAFE:
+                timeout = 5;
+                break;
 
+                // interactively triggered menus should not time out
+              case MENU_REASON_INTERACTIVE:
+                timeout = 0;
+                break;
+
+                // configuration triggered menus use the configured timeout
+              case MENU_REASON_CONFIG:
+              case MENU_REASON_CMDLINE:
+              case MENU_REASON_MISC:
+              default:
+                timeout = get_loader_config_timeout();
+            }
+        }
         boot_type = BOOT_NONE;
-        selected = text_menu_choose_steamos_loader( selected, &boot_type, 0 );
+        selected = text_menu_choose_steamos_loader( selected, &boot_type, timeout );
 
         if( nvram_debug )
             set_loader_time_menu_usec();

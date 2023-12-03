@@ -29,6 +29,7 @@ typedef struct _menu menu;
 typedef struct _menu_engine menu_engine;
 
 typedef INTN (*_run_menu)(menu *ui, UINTN start, OUT VOID **chosen);
+typedef VOID (*_show_timer)(menu *ui);
 typedef VOID (*_free_engine)(menu_engine *engine);
 
 typedef struct _menu_engine
@@ -37,6 +38,7 @@ typedef struct _menu_engine
     const char *type;
     _run_menu run;
     _free_engine free;
+    _show_timer show_timer;
 } menu_engine;
 
 typedef struct
@@ -58,9 +60,13 @@ typedef struct _menu
     UINTN label_width;
     menu_engine *engine;
     menu_option *option;
+    INTN timeout;
+    INTN countdown;
+    EFI_EVENT timer;
 } menu;
 
 menu *menu_alloc (INTN entries, CONST CHAR16 *title);
 VOID menu_free   (menu *menu);
 INTN run_menu    (menu *menu, UINTN start, OUT VOID **chosen);
 BOOLEAN confirm  (CONST CHAR16 *question, BOOLEAN default_answer);
+VOID menu_timeout(menu *menu, INTN timeout);

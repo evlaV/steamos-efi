@@ -59,5 +59,6 @@ EFI_STATUS timer_stop (EFI_EVENT timer)
 
 EFI_STATUS timer_destroy (EFI_EVENT timer)
 {
+    timer_stop( timer );
     return uefi_call_wrapper( BS->CloseEvent, 1, timer );
 }

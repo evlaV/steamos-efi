@@ -26,6 +26,7 @@
 #include "../util.h"
 #include "../menu.h"
 #include "../console-ex.h"
+#include "../timer.h"
 #include "gfx.h"
 #include "font.h"
 
@@ -326,6 +327,9 @@ static INTN gfx_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 
     render_menu( ui, selected );
 
+    if( ui->timer )
+        timer_sched( ui->timer, TRUE, 1000 );
+
     set_output_attributes( priv, ATTR_DEFAULT );
 
     for( ;; )
@@ -339,9 +343,20 @@ static INTN gfx_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
         res = wait_for_key( &key, 100 );
 
         if( res == EFI_TIMEOUT )
+        {
+            if( ui->timeout > 0 && ui->countdown <= 0 )
+            {
+                DEBUG_LOG( "timeout %d expired", ui->timeout );
+                break;
+            }
+
             continue;
+        }
 
         ERROR_BREAK( res, L"wait_for_key( 0x%x, %lu )", &key );
+
+        // key press. reset timeout countdown:
+        ui->countdown = ui->timeout;
 
         if( ( key.UnicodeChar == CHAR_LINEFEED ) ||
             ( key.UnicodeChar == CHAR_CARRIAGE_RETURN ) )
@@ -380,6 +395,9 @@ static INTN gfx_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
         *chosen = ui->option[ selected ].data;
 
     gfx_fill_screen( priv->gfx, 0x000000 );
+
+    if( ui->timer )
+        timer_stop( ui->timer );
 
     return selected;
 }

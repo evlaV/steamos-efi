@@ -20,6 +20,7 @@
 #include "menu.h"
 #include "con/menu.h"
 #include "gfx/menu.h"
+#include "timer.h"
 
 menu *
 menu_alloc (INTN entries, CONST CHAR16 *title)
@@ -43,11 +44,52 @@ menu_alloc (INTN entries, CONST CHAR16 *title)
     return ui;
 }
 
+VOID EFIAPI menu_timer_tick (EFI_EVENT opt timer, VOID *data)
+{
+    menu *ui = (menu *)data;
+
+    if( ui->engine->show_timer )
+        ui->engine->show_timer( ui );
+
+    ui->countdown--;
+}
+
+static VOID setup_menu_timer (menu *ui)
+{
+    if( ui->timeout > 0 && ui->countdown > 0 )
+    {
+        if( ui->timer == NULL )
+            ui->timer = timer_create( menu_timer_tick, ui );
+    }
+    else
+    {
+        if( ui->timer == NULL )
+            return;
+
+        timer_destroy( ui->timer );
+        ui->timer = NULL;
+    }
+}
+
+VOID
+menu_timeout (menu *ui, INTN timeout)
+{
+    ui->timeout = timeout;
+    ui->countdown = timeout;
+    setup_menu_timer( ui );
+}
+
 VOID
 menu_free (menu *ui)
 {
     for( UINTN i = 0; i < ui->entries; i++ )
         efi_free( ui->option[ i ].data );
+
+    if( ui->timer )
+    {
+        timer_stop( ui->timer );
+        timer_destroy( ui->timer );
+    }
 
     ui->engine->free( ui->engine );
     efi_free( ui->title );
@@ -57,6 +99,7 @@ menu_free (menu *ui)
 
 INTN run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 {
+    setup_menu_timer( ui );
     return ui->engine->run( ui, start, chosen );
 }
 
