@@ -449,10 +449,11 @@ exit:
     return res;
 }
 
+// This value is interpreted as a number of seconds
 INTN get_loader_config_timeout ()
 {
     EFI_GUID guid = LOADER_VARIABLE_GUID;
-    UINTN res = 5000000;
+    UINTN res = 5;
     UINTN size;
     VOID *val;
 
@@ -483,6 +484,7 @@ BOOLEAN is_loader_config_timeout_oneshot_set ()
     return FALSE;
 }
 
+// This value is interpreted as a number of seconds
 INTN get_loader_config_timeout_oneshot ()
 {
     EFI_GUID guid = LOADER_VARIABLE_GUID;

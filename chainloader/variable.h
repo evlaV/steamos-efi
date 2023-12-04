@@ -52,9 +52,17 @@ EFI_STATUS set_chainloader_device_part_uuid ();
 EFI_STATUS set_chainloader_image_identifier ();
 EFI_STATUS set_chainedloader_device_part_uuid (EFI_HANDLE image_handle);
 EFI_STATUS set_chainloader_entry_flags (UINT64 flags);
+
+// These timeout values are interpreted as a number of seconds
 INTN get_loader_config_timeout ();
-BOOLEAN is_loader_config_timeout_oneshot_set ();
 INTN get_loader_config_timeout_oneshot ();
+
+BOOLEAN is_loader_config_timeout_oneshot_set ();
+
+// Deprecated. Volatile values won't survive an actual power off
+// and updating persistent vars every boot will degrade NVRAM life
+// too much:
 UINTN get_chainloader_boot_attempts ();
+
 UINTN get_hw_config_button_state (void);
 EFI_STATUS set_chainloader_boot_attempts ();
