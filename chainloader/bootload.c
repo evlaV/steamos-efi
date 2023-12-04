@@ -40,7 +40,11 @@
 // row. We have never (as far as we know) seen 3 boot failures in a
 // row that didn't require manual intervention. We _could_ probably
 // crank this down to 2 - lower than that is likely too alarmist.
- #define MAX_BOOT_FAILURES 3
+#define MAX_BOOT_FAILURES 3
+#define SUPERMAX_BOOT_FAILURES 6
+
+#define FAILSAFE_TIMEOUT 10
+#define FAILSAFE_EXTRA_TIMEOUT 30
 
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
@@ -1034,6 +1038,56 @@ cleanup:
     return EFI_NOT_FOUND;
 }
 
+static VOID
+set_menu_conf (MENU_REASON reason, INTN *selected, UINTN *timeout)
+{
+    UINTN def_opt = MAX( *selected, 0 );
+    UINTN tries   = found[ def_opt ].tries;
+
+    switch( reason )
+    {
+        // The failsafe menu gets a short-ish delay for
+        // "ordinary" levels of boot-failure. If we've managed to
+        // fail "a lot" then pick an alt bot entry if available
+        // and set up a longer timeout:
+      case MENU_REASON_FAILSAFE:
+        if( tries >= SUPERMAX_BOOT_FAILURES )
+        {
+            UINTN alt_opt = def_opt;
+
+            // pick an alt config that's not _this_ config, if possible
+            if( def_opt > 0 )
+                alt_opt = def_opt - 1;
+            else if( def_opt < found_cfg_count - 1 )
+                alt_opt = def_opt + 1;
+
+            // if the alt config is not-more-broken, use that:
+            if( def_opt != alt_opt &&
+                found[ alt_opt ].tries <= tries )
+                *selected = alt_opt;
+
+            *timeout = FAILSAFE_EXTRA_TIMEOUT;
+        }
+        else
+        {
+            *timeout = FAILSAFE_TIMEOUT;
+        }
+        break;
+
+        // interactively triggered menus should not time out
+      case MENU_REASON_INTERACTIVE:
+        *timeout = 0;
+        break;
+
+        // configuration triggered menus use the configured timeout
+      case MENU_REASON_CONFIG:
+      case MENU_REASON_CMDLINE:
+      case MENU_REASON_MISC:
+      default:
+        *timeout = get_loader_config_timeout();
+    }
+}
+
 EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
 {
     UINT64 flags = 0;
@@ -1134,30 +1188,15 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         if( oneshot )
         {
             timeout = get_loader_config_timeout_oneshot();
+            DEBUG_LOG( "one-shot timeout is %lu", timeout );
         }
         else
         {
-            switch( display_menu )
-            {
-                // placeholder: constant to be replaced with a more
-                // complex failure-count aware setting:
-              case MENU_REASON_FAILSAFE:
-                timeout = 5;
-                break;
-
-                // interactively triggered menus should not time out
-              case MENU_REASON_INTERACTIVE:
-                timeout = 0;
-                break;
-
-                // configuration triggered menus use the configured timeout
-              case MENU_REASON_CONFIG:
-              case MENU_REASON_CMDLINE:
-              case MENU_REASON_MISC:
-              default:
-                timeout = get_loader_config_timeout();
-            }
+            set_menu_conf( display_menu, &selected, &timeout );
+            DEBUG_LOG( "menu reason %d; default: %ld, timeout: %lu",
+                       display_menu, selected, timeout );
         }
+
         boot_type = BOOT_NONE;
         selected = text_menu_choose_steamos_loader( selected, &boot_type, timeout );
 
