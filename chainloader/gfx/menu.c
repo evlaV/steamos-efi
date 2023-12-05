@@ -278,6 +278,41 @@ static VOID calculate_menu_layout (menu *ui)
     ui->offset.x = offset;
 }
 
+static VOID gfx_show_timer (menu *ui)
+{
+    CHAR16 text[8];
+    UINT16 w, h;
+    UINT16 x, y;
+    gm_priv *priv;
+
+    if( ui->timeout <= 0 )
+        return;
+
+    priv = ui->engine->private;
+
+    // prepare the display text
+    sprintf_w( text, sizeof(text), L"  %02ds", ui->countdown );
+    text[ ARRAY_SIZE(text) - 1 ] = L'\0';
+
+    // figure out how big it's going to appear:
+    font_string_display_size( NULL, text, &w, &h );
+
+    // always leaving 2 pixels on the end, last char is always 's'
+    // so hopefully there will never be any jitter there:
+    x = ui->screen.x - w - 2;
+
+    // All our digits _should_ be the same height so we can probably
+    // skip any snap-to-baseline grid calculations here:
+    y = 0;
+
+    // now paint it on the screen:
+    set_output_attributes( priv, ATTR_TITLE );
+    font_output_text( priv->gfx, NULL, text, 0,
+                      x, y,
+                      priv->foreground, DECOR_NONE,
+                      NULL, NULL );
+}
+
 static VOID render_menu (menu *ui, UINTN selected)
 {
     UINTN t_yoff = 0;
@@ -357,6 +392,7 @@ static INTN gfx_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 
         // key press. reset timeout countdown:
         ui->countdown = ui->timeout;
+        gfx_show_timer( ui );
 
         if( ( key.UnicodeChar == CHAR_LINEFEED ) ||
             ( key.UnicodeChar == CHAR_CARRIAGE_RETURN ) )
@@ -438,10 +474,13 @@ menu_engine *gfx_menu_engine (VOID)
     EFI_STATUS rc = gfx_mode_supported( gfx, mode );
     ERROR_JUMP( rc, cleanup, "Graphics mode %d", mode );
 
+    // required members
     engine->private = priv;
     engine->type    = "gfx";
     engine->run     = gfx_run_menu;
     engine->free    = gfx_del_menu;
+    // optional members:
+    engine->show_timer = gfx_show_timer;
 
     return engine;
 
