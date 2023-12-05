@@ -207,6 +207,31 @@ static VOID calculate_menu_layout (menu *ui)
     ui->offset.x = offset;
 }
 
+static VOID con_show_timer (menu *ui)
+{
+    CHAR16 text[8];
+    UINT16 w;
+    UINT16 x;
+
+    if( ui->timeout <= 0 )
+        return;
+
+    // prepare the display text
+    sprintf_w( text, sizeof(text), L"  %02ds", ui->countdown );
+    text[ ARRAY_SIZE(text) - 1 ] = L'\0';
+
+    // figure out how big it's going to appear:
+    w = strlen_w( text );
+
+    // figure out where we need to start writing:
+    // NOTE: writes to last column trigger a carriage return, hence: - 1
+    x = ui->screen.x - w - 1;
+
+    con_set_cursor_position( x, 0 );
+    con_set_output_attribute( TITLE_ATTRIBUTES );
+    con_output_text( text );
+}
+
 static VOID render_menu (menu *ui, UINTN selected)
 {
     calculate_menu_layout( ui );
@@ -288,6 +313,7 @@ static INTN con_run_menu (menu *ui, UINTN start, OUT VOID **chosen)
 
         // key press. reset timeout countdown:
         ui->countdown = ui->timeout;
+        con_show_timer( ui );
 
         if( ( key.UnicodeChar == CHAR_LINEFEED ) ||
             ( key.UnicodeChar == CHAR_CARRIAGE_RETURN ) )
@@ -336,10 +362,13 @@ menu_engine *con_menu_engine (VOID)
 
     if( engine )
     {
+        // required members:
         engine->private = NULL;
         engine->type    = "con";
         engine->run     = con_run_menu;
         engine->free    = con_del_menu;
+        // optional members:
+        engine->show_timer = con_show_timer;
     }
 
     return engine;
