@@ -319,7 +319,7 @@ static void prepare_boot_info (found_cfg *entry, CHAR16 *blurb, UINT64 len)
     blurb[ len / sizeof(*blurb) ] = L'\0';
 }
 
-static menu *create_boot_menu (INTN selected)
+static menu *create_boot_menu (INTN selected, INTN current_opt)
 {
     INTN entries = 0;
 
@@ -344,7 +344,7 @@ static menu *create_boot_menu (INTN selected)
         CHAR16 *blurb;
         CHAR16 ui_label[40] = {0};
         CHAR16 ui_blurb[40] = {0};
-        BOOLEAN current = (selected == i);
+        BOOLEAN current = (current_opt == i);
         // The menu is displayed in reverse order to the least->most wanted
         // order of the found configs.
         UINTN o;
@@ -471,7 +471,8 @@ static menu *create_boot_menu (INTN selected)
     return boot_menu;
 }
 
-static INTN text_menu_choose_steamos_loader (INTN entry_default,
+static INTN interactive_loader_menu  (INTN entry_default,
+                                      INTN entry_current,
                                       OUT opt_type *type,
                                       opt UINTN timeout)
 {
@@ -482,8 +483,12 @@ static INTN text_menu_choose_steamos_loader (INTN entry_default,
     if( entry_default < 0 )
         entry_default = 0;
 
-    DEBUG_LOG("create_boot_menu(%d) [timeout: %lu]", entry_default, timeout);
-    boot_menu = create_boot_menu( entry_default );
+    if( entry_current < 0 )
+        entry_current = 0;
+
+    DEBUG_LOG("create_boot_menu(def: %d, cur: %d) [timeout: %lu]",
+              entry_default, entry_current, timeout);
+    boot_menu = create_boot_menu( entry_default, entry_current );
     menu_timeout( boot_menu, timeout );
 
     // The menu is displayed in reverse order to the least->most wanted order
@@ -1091,6 +1096,7 @@ set_menu_conf (MENU_REASON reason, INTN *selected, UINTN *timeout)
 EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
 {
     UINT64 flags = 0;
+    INTN current = -1;
     INTN selected = -1;
     BOOLEAN boot_other = FALSE;
     EFI_STATUS res = EFI_SUCCESS;
@@ -1150,6 +1156,10 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         }
     }
 
+    // normally the selected option is the current one,
+    // and we've made that decision by this point:
+    current = selected;
+
     // if a oneshot boot was requested from the last OS run or
     // we somehow failed to pick a valid image, or the selected
     // image has too many boot failures then display the menu:
@@ -1193,12 +1203,12 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         else
         {
             set_menu_conf( display_menu, &selected, &timeout );
-            DEBUG_LOG( "menu reason %d; default: %ld, timeout: %lu",
-                       display_menu, selected, timeout );
+            DEBUG_LOG( "reason %d; default: %ld, current: %ld, timeout: %lu",
+                       display_menu, selected, current, timeout );
         }
 
         boot_type = BOOT_NONE;
-        selected = text_menu_choose_steamos_loader( selected, &boot_type, timeout );
+        selected = interactive_loader_menu( selected, current, &boot_type, timeout );
 
         if( nvram_debug )
             set_loader_time_menu_usec();
