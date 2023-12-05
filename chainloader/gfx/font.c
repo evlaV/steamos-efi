@@ -421,6 +421,7 @@ font_draw_glyph_at_xy (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
 
     UINT16 baseline = cell_height - glyph->font->descent; // measured from top
     UINT16 y_offset = baseline - glyph->height - glyph->offset.y;
+    UINT16 bb_width = MIN( cell_width, glyph->device_width );
 
     res = gfx_convert_bitmap( gfx,
                               glyph->bitmap,
@@ -429,7 +430,7 @@ font_draw_glyph_at_xy (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
                               1,
                               triplet,
                               &glyph->font->blit_buffer,
-                              cell_width,
+                              bb_width,
                               cell_height,
                               glyph->offset.x,
                               y_offset );
@@ -438,7 +439,7 @@ font_draw_glyph_at_xy (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
     {
         debug_1bpp_bitmap( glyph->bitmap, glyph->width, glyph->height );
         debug_32bpp_bitmap( glyph->font->blit_buffer.data,
-                            cell_width,
+                            bb_width,
                             cell_height );
     }
 
@@ -447,7 +448,7 @@ font_draw_glyph_at_xy (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
 
     return gfx_blit_out( gfx,
                          &glyph->font->blit_buffer,
-                         cell_width,
+                         bb_width,
                          cell_height,
                          x, y );
 }
