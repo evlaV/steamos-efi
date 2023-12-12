@@ -43,8 +43,8 @@
 #define MAX_BOOT_FAILURES 3
 #define SUPERMAX_BOOT_FAILURES 6
 
-#define FAILSAFE_TIMEOUT 10
-#define FAILSAFE_EXTRA_TIMEOUT 30
+#define FAILSAFE_TIMEOUT 30
+#define FAILSAFE_EXTRA_TIMEOUT 120
 
 // this converts micro-seconds to event timeout in 10ns
 #define EFI_TIMER_PERIOD_MICROSECONDS(s) (s * 10)
