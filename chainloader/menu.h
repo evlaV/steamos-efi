@@ -70,3 +70,4 @@ VOID menu_free   (menu *menu);
 INTN run_menu    (menu *menu, UINTN start, OUT VOID **chosen);
 BOOLEAN confirm  (CONST CHAR16 *question, BOOLEAN default_answer);
 VOID menu_timeout(menu *menu, INTN timeout);
+UINTN menu_sprint_interval (CHAR16 *buf, UINTN bytes, UINT64 sec);
