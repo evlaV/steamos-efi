@@ -153,6 +153,8 @@ CHAR16 *guid_str (EFI_GUID *guid);
 
 UINT64 efi_time_to_timestamp (EFI_TIME *time);
 VOID   efi_time_to_utc (EFI_TIME *time);
+VOID   seconds_to_dhms (UINT64 sec, UINT64 *d, UINT8 *h, UINT8 *m, UINT8 *s);
+
 #endif
 
 CHAR16 *strwiden (CONST CHAR8 *narrow);

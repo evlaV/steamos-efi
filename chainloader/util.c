@@ -556,6 +556,48 @@ UINT64 time_usec (VOID)
     return 1000UL * 1000UL * ticks / freq;
 }
 
+VOID seconds_to_dhms (UINT64 sec, UINT64 *d, UINT8 *h, UINT8 *m, UINT8 *s)
+{
+    if( d )
+        *d = 0;
+
+    if( h )
+        *h = 0;
+
+    if( m )
+        *m = 0;
+
+    if( s )
+        *s = 0;
+
+    if( sec >= 86400 )
+    {
+        if( d )
+            *d = sec / 86400;
+        sec = sec % 86400;
+    }
+
+    if( sec >= 3600 )
+    {
+        if( h )
+            *h = sec / 3600;
+        sec = sec % 3600;
+    }
+
+    if( sec >= 60 )
+    {
+        if( m )
+            *m = sec / 60;
+        if( s )
+            *s = sec % 60;
+    }
+    else
+    {
+        if( s )
+            *s = sec;
+    }
+}
+
 // string utility functions:
 UINTN strlen_w (const CHAR16 *str)
 {
