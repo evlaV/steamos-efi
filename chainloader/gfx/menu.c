@@ -56,6 +56,11 @@ typedef struct _gm_priv
     UINT32 background;
     UINT32 outline;
     UINT16 info_frame_size;
+    struct
+    {
+        UINT16 height;
+        UINT16 width;
+    } last_timer;
 } gm_priv;
 
 static VOID set_output_attributes (gm_priv *priv, output_attributes attr)
@@ -280,22 +285,37 @@ static VOID calculate_menu_layout (menu *ui)
 
 static VOID gfx_show_timer (menu *ui)
 {
-    CHAR16 text[8];
+    CHAR16 text[11]; // space for "Xh XXm XXs" - 10 chars + NUL
     UINT16 w, h;
     UINT16 x, y;
     gm_priv *priv;
+    static GLYPH *spc = NULL;
 
     if( ui->timeout <= 0 )
         return;
 
+    if( spc == NULL )
+        spc = font_get_glyph( NULL, L' ' );
+
     priv = ui->engine->private;
 
     // prepare the display text
-    sprintf_w( text, sizeof(text), L"  %02ds", ui->countdown );
-    text[ ARRAY_SIZE(text) - 1 ] = L'\0';
+    menu_sprint_interval( text, sizeof(text), ui->countdown );
 
     // figure out how big it's going to appear:
     font_string_display_size( NULL, text, &w, &h );
+
+    // Drawing to exact pixel locations so need to add blank padding
+    // when the countdown label shrinks:
+    if( priv->last_timer.width > w || priv->last_timer.height > h )
+    {
+        gfx_fill_rectangle( priv->gfx, 0,
+                            ui->screen.x - priv->last_timer.width - 2, 0,
+                            priv->last_timer.width, priv->last_timer.height );
+    }
+
+    priv->last_timer.width  = w;
+    priv->last_timer.height = h;
 
     // always leaving 2 pixels on the end, last char is always 's'
     // so hopefully there will never be any jitter there:
