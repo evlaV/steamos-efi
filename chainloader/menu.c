@@ -118,3 +118,25 @@ BOOLEAN confirm (CONST CHAR16 *question, BOOLEAN default_answer)
 
     return answer == 0;
 }
+
+UINTN menu_sprint_interval (CHAR16 *buf, UINTN bytes, UINT64 sec)
+{
+    UINT64 d;
+    UINT8 h, m, s;
+    UINTN rv = 0;
+
+    seconds_to_dhms( sec , &d, &h, &m, &s );
+
+    if( d )
+        rv = sprintf_w( buf, bytes, L"%lud %02uh %02um %02us", d, h, m, s );
+    else if( h )
+        rv = sprintf_w( buf, bytes, L"%uh %02um %02us", h, m, s );
+    else if( m )
+        rv = sprintf_w( buf, bytes, L"%um %02us", m, s );
+    else
+        rv = sprintf_w( buf, bytes, L"%us", s );
+
+    buf[ (bytes / sizeof(*buf)) - 1 ] = 0;
+
+    return rv;
+}
