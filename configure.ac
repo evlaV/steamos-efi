@@ -321,7 +321,7 @@ AS_CASE([$with_efilib],
         [EFI_CFLAGS="-fpic -I $EFI_INC -I${EFI_INC}/${target_cpu}"]
         [EFI_CFLAGS="${EFI_CFLAGS} -DGNU_EFI_USE_MS_ABI"]
         [EFI_CFLAGS="$EFI_CFLAGS -I ${EFI_INC}/protocol"]
-        [EFI_SECT="text sdata data dynamic dynsym rel rela rel.\* rel\* rela\*"],
+        [EFI_SECT="text sdata data dynamic dynsym rel rela rel.\* rel\* rela\* rodata"],
         [tiano], [AC_MSG_ERROR(["tiano core efi is not supported yet"])],
         [AC_MSG_ERROR(["--with-efilib= value must be gnu or tiano"])])
 
