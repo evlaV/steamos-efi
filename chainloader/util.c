@@ -759,7 +759,7 @@ UINTN vsprintf_w (CHAR16 *buf, UINT64 size, const CHAR16 *fmt, va_list args)
 // memory utility functions
 VOID mem_copy (void *dest, const VOID *src, UINTN len)
 {
-    CopyMem( dest, src, len );
+    CopyMem( dest, (void *)src, len );
 }
 
 INTN mem_cmp (const VOID *a, const VOID *b, UINTN len)
