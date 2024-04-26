@@ -321,10 +321,18 @@ AS_CASE([$with_efilib],
         [EFI_CFLAGS="-fpic -I $EFI_INC -I${EFI_INC}/${target_cpu}"]
         [EFI_CFLAGS="${EFI_CFLAGS} -DGNU_EFI_USE_MS_ABI"]
         [EFI_CFLAGS="$EFI_CFLAGS -I ${EFI_INC}/protocol"]
-        [EFI_SECT="text sdata data dynamic dynsym rel rela rel.\* rel\* rela\* rodata"],
+        [EFI_SECT="text sdata data dynamic dynsym rel rela rel.\* rel\* rela\*"],
         [tiano], [AC_MSG_ERROR(["tiano core efi is not supported yet"])],
         [AC_MSG_ERROR(["--with-efilib= value must be gnu or tiano"])])
 
+AC_MSG_CHECKING([for extra objcopy targets based on gnu-efi in "$EFI_LIB"])
+dnl This finds objcopy sections in objects shipped by gnu-efi that
+dnl we didn't expect to find: Hopefully this will automatically
+dnl cope when gnu-efi adds a section to its implicit requirements
+_x=$(${srcdir}/build-utils/objcopy-extra-targets.sh "${EFI_LIB}")
+AS_IF([test -n "$_x"],
+      [EFI_SECT="${EFI_SECT} $_x"; AC_MSG_RESULT([$_x])],
+      [AC_MSG_RESULT([-none-])])
 for x in $EFI_SECT; do EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS -j .$x"; done;
 EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --target=$platform-app-$target_cpu";
 

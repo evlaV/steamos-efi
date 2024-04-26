@@ -20,6 +20,8 @@
 AUTOMAKE_OPTIONS = subdir-objects
 CHAR_TYPES       = -fshort-wchar -funsigned-char
 CODING_STANDARDS = -std=gnu18 $(CHAR_TYPES) -Wall -Wextra -Werror
+EXTRA_DIST       = build-utils/objcopy-sections.sh \
+                   build-utils/objcopy-extra-targets.sh
 
 ############################################################################
 # cosmetic settings to make the objcopy output tidy when using silent rules
