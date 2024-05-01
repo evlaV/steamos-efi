@@ -5,6 +5,7 @@ stages:
   stage: build
   tags:
     - docker
+    - isolated
     - linux
     - autoscaled
   script:
