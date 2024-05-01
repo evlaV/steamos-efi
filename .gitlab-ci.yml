@@ -1,25 +1,47 @@
 stages:
   - build
 
-build:
+.build_template:
   stage: build
-  image: debian:bullseye-slim
-  before_script:
-    - apt update
-    - apt install -y build-essential
-    - apt install -y autoconf autoconf-archive pkg-config
-    - apt install -y grub fontconfig fonts-noto-core
-    - echo "deb http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list.d/bookworm.list
-    - apt update
-    - apt install -y gnu-efi/bookworm
+  tags:
+    - docker
+    - linux
+    - autoscaled
   script:
     - autoreconf -ivf
-    - ./configure --prefix=/usr
+    - ./configure --prefix=/usr --with-release-version="$(date +%Y%m%d.%H%M)"
     - make distcheck
     - make install DESTDIR=./steamos-efi
+    - mv -v ./steamos-efi/usr/sbin/* ./steamos-efi/usr/bin/
+    - rmdir ./steamos-efi/usr/sbin
   artifacts:
     paths:
       - steamos-efi-*.tar.gz
       - steamos-efi
-  tags:
-    - autoscaled
+
+.build_apt_template:
+  extends: .build_template
+  before_script:
+    - apt update
+    - apt install -y build-essential
+    - apt install -y autoconf autoconf-archive pkg-config
+    - apt install -y grub fontconfig fonts-noto-core gnu-efi
+
+.build_pac_template:
+  extends: .build_template
+  before_script:
+    - pacman -Syu --noconfirm
+    - pacman -S --noconfirm base-devel
+    - pacman -S --noconfirm grub fontconfig noto-fonts gnu-efi-libs
+
+build:debian-12:
+  extends: .build_apt_template
+  image: debian:bookworm-slim
+
+build:arch:
+  extends: .build_pac_template
+  image: archlinux:base-devel
+
+build:jupiter:
+  extends: .build_pac_template
+  image: registry.gitlab.steamos.cloud/steam/steamos-docker-images/jupiter-main/base-devel:latest
