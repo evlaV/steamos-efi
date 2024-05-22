@@ -4,10 +4,7 @@ stages:
 .build_template:
   stage: build
   tags:
-    - docker
-    - isolated
-    - linux
-    - autoscaled
+    - x86_64-linux-kvm-docker
   script:
     - autoreconf -ivf
     - ./configure --prefix=/usr --with-release-version="$(date +%Y%m%d.%H%M)"
