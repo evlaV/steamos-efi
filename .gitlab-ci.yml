@@ -4,8 +4,10 @@ stages:
 .build_template:
   stage: build
   tags:
-    - x86_64-linux-kvm-docker
+    - x86_64-linux-kvm-docker-heavy
   script:
+    - ip addr
+    - ip neigh
     - autoreconf -ivf
     - ./configure --prefix=/usr --with-release-version="$(date +%Y%m%d.%H%M)"
     - make distcheck
