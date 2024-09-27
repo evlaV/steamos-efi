@@ -26,6 +26,7 @@ stages:
     - apt install -y build-essential
     - apt install -y autoconf autoconf-archive pkg-config
     - apt install -y grub fontconfig fonts-noto-core gnu-efi
+    - apt install -y iproute2
 
 .build_pac_template:
   extends: .build_template
