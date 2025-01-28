@@ -83,6 +83,27 @@ EFI_STATUS gfx_get_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
     return res;
 }
 
+UINT32 gfx_get_mode_resolution (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info,
+                                UINT32 *x,
+                                UINT32 *y,
+                                UINT32 *s)
+{
+    if (!info)
+    {
+        if (x) *x = 0;
+        if (y) *y = 0;
+        if (s) *s = 0;
+
+        return 0;
+    }
+
+    if( x ) *x = info->HorizontalResolution;
+    if( y ) *y = info->VerticalResolution;
+    if( s ) *s = info->PixelsPerScanLine;
+
+    return info->HorizontalResolution * info->VerticalResolution;
+}
+
 EFI_STATUS gfx_mode_supported (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 mode)
 {
     UINTN size;
@@ -125,6 +146,11 @@ gfx_current_mode_info (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx)
 UINT32 gfx_current_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx)
 {
     return gfx->Mode->Mode;
+}
+
+UINT32 gfx_max_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx)
+{
+    return gfx ? gfx->Mode->MaxMode : 0;
 }
 
 UINT32 gfx_current_resolution (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
@@ -412,6 +438,53 @@ gfx_draw_box(EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
     ERROR_RETURN( res, res, L"blit out failed" );
 
     return res;
+}
+
+// ====================================================================
+// On the Steam Deck (both OLED and LCD):
+// when the bootloader starts we're in mode #0 out of:
+// #00* 0800 x 1280 [BGR8] FF0000.FF00.FF.0 L:832
+// #01  0800 x 0600 [BGR8] FF0000.FF00.FF.0 L:832
+// #02  0640 x 0480 [BGR8] FF0000.FF00.FF.0 L:640
+// #03  1280 x 0800 [BGR8] FF0000.FF00.FF.0 L:1280 ← landscape
+// #04  0600 x 0800 [BGR8] FF0000.FF00.FF.0 L:600
+// #05  0480 x 0640 [BGR8] FF0000.FF00.FF.0 L:480
+// Mode #3 is the only landscape mode, and the one we want on the deck.
+// ====================================================================
+// Heuristics for picking a "suitable" mode for the bootloader menu:
+// - mode should be wider than it is tall
+// - mode should be at least 800 tall or we'll need to redo layout
+// - ratio should be 16:10 or better (aka >= 1.6)
+UINT32 gfx_mode_score (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 mode)
+{
+    UINT32 x, y, stride;
+    EFI_STATUS mode_rc;
+    EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info = NULL;
+    UINTN isize  = 0;
+    UINT32 score = 0;
+
+    if( gfx == NULL )
+        ERROR_RETURN( EFI_INVALID_PARAMETER, 0,
+                      "Invalid GOP interface %016x", gfx );
+
+    mode_rc = gfx_get_mode( gfx, mode, &isize, &info );
+    ERROR_RETURN( mode_rc, 0, "GOP mode #%d invalid", mode );
+
+    if( gfx_get_mode_resolution( info, &x, &y, &stride) > 0 )
+    {
+        UINT32 ratio = (x * 10) / y;
+
+        score += ( x > y       ) ? 100 : 0; // wide
+        score += ( y >= 800    ) ? 100 : 0; // at least 800px tall
+        score += ratio;                     // wider = better
+        score += ( ratio >= 16 ) ?  10 : 0; // bonus if 16:10 or better
+        score += (x * y) / 20000;           // absolute area weighting
+
+        DEBUG_LOG( "Mode #%d [%03d x %03d] score = %04d",
+                   mode, x, y, score );
+    }
+
+    return score;
 }
 
 EFI_STATUS gfx_dump_modes (VOID)

@@ -46,6 +46,7 @@ EFI_STATUS gfx_dump_modes (VOID);
 
 EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx_get_interface (VOID);
 
+UINT32     gfx_max_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx);
 
 EFI_STATUS gfx_get_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
                          UINT32 mode,
@@ -56,8 +57,15 @@ EFI_STATUS gfx_set_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 mode);
 
 EFI_STATUS gfx_mode_supported (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 mode);
 
+UINT32     gfx_mode_score     (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 mode);
+
 EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *
 gfx_current_mode_info (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx);
+
+UINT32 gfx_get_mode_resolution (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info,
+                                UINT32 *x,
+                                UINT32 *y,
+                                UINT32 *s);
 
 UINT32 gfx_current_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx);
 
