@@ -101,19 +101,28 @@ static VOID gfx_del_menu (menu_engine *engine)
 
 static UINT32 choose_mode (gm_priv *priv opt)
 {
-    // =================================================================
-    // When the bootloader starts we're in mode #0 out of:
-    // #00* 0800 x 1280 [BGR8] FF0000.FF00.FF.0 L:832
-    // #01  0800 x 0600 [BGR8] FF0000.FF00.FF.0 L:832
-    // #02  0640 x 0480 [BGR8] FF0000.FF00.FF.0 L:640
-    // #03  1280 x 0800 [BGR8] FF0000.FF00.FF.0 L:1280
-    // #04  0600 x 0800 [BGR8] FF0000.FF00.FF.0 L:600
-    // #05  0480 x 0640 [BGR8] FF0000.FF00.FF.0 L:480
-    // Mode #3 is the one we want on the deck
-    // =================================================================
-    // TODO: add some heuristics to pick a "good"
-    // (aka hi-res & unrotated) mode:
-    return 3;
+    UINT32 mode = 0;
+    UINT32 chosen = 0;
+    UINT32 max_mode = 0;
+    UINT32 last_score = 0;
+    EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx = NULL;
+
+    gfx = gfx_get_interface();
+    max_mode = gfx_max_mode( gfx );
+
+    for( mode = 0; mode < max_mode; mode++ )
+    {
+        UINT32 score = gfx_mode_score( gfx, mode );
+
+        if( score > last_score )
+        {
+            chosen = mode;
+            last_score  = score;
+        }
+    }
+
+    DEBUG_LOG("Scoring algorithm chose mode #%d", chosen);
+    return chosen;
 }
 
 static EFI_STATUS set_mode (menu_engine *engine)
