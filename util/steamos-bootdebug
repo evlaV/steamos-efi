@@ -109,6 +109,11 @@ cache_bootpath ()
         (*\)RC)
             path="/efi/boot/bootx64.efi";
             ;;
+        (HD\(*)
+            path=${data#HD\(*)?}
+            path=${path,,}
+            path=${path//\\/\/}
+            ;;
     esac
 
     if [ -n "$mounted" ] && [ -n "$path" ]
