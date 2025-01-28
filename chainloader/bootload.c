@@ -265,6 +265,16 @@ EFI_STATUS set_steamos_loader_criteria (OUT bootloader *loader)
     if( font_path && efi_file_exists( root_dir, font_path ) == EFI_SUCCESS )
         font_load( root_dir, font_path );
 
+#ifdef LOG_VIDEO_MODES
+    // Dump the mode info and scores out (useful on new devices)
+    EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx = gfx_get_interface();
+    if( gfx != NULL )
+    {
+        UINT32 max_mode = gfx_max_mode( gfx );
+        for( UINT32 mode = 0; mode < max_mode; mode++ )
+            gfx_mode_score( gfx, mode );
+    }
+#endif
 #ifdef CHARSET_TESTS
     charset_tests( root_dir, orig_path );
 #endif
