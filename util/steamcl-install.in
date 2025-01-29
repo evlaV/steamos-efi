@@ -42,8 +42,8 @@ esp_part=;  # X (as in /dev/sdaX)
 esp_mount=; # usually /esp on SteamOS 3+
 esp_fs=;    # fs type (vfat)
 
-boot_entries=; # space separated list of HEXBOOTID:LOADERPATH
-all_boot_ids=; # space separated list of HEXBOOTID
+declare -a boot_entries=(); # list of HEXBOOTID:LOADERPATH
+declare -a all_boot_ids=(); # list of HEXBOOTID
 free_boot_id=; # an unused HEXBOOTID
 boot_path_found=; # set if a matching boot entry was found by check_boot_path
 
@@ -298,8 +298,8 @@ find_boot_entries ()
     local epath=;
     local edist=;
 
-    all_boot_ids=;
-    boot_entries=;
+    all_boot_ids=();
+    boot_entries=();
     distributor=${distributor,,};
 
     while read -r bootid entry;
@@ -309,7 +309,7 @@ find_boot_entries ()
 
         case $bootid in (Boot+([0-9A-Fa-f])) true; ;; *) continue; esac;
 
-        all_boot_ids=${all_boot_ids}${all_boot_ids:+ }${bootid#Boot};
+        all_boot_ids+=(${bootid#Boot});
 
         case $entry  in (*+([ 	])HD\(*) true; ;; *) continue; esac;
 
@@ -320,17 +320,27 @@ find_boot_entries ()
 
         if [ ! ${epart:-0} -eq ${part} ]; then continue; fi;
 
-        epath=${entry##*/File\(};
-        epath=${epath%\)*};
-        epath=${epath//\\/\/};
+        case $entry in
+            (*/File\(*)
+                epath=${entry##*/File\(}
+                epath=${epath%\)*}
+                ;;
+            (*HD\(*)
+                epath=${entry#*HD\(*)?}
+                ;;
+            (*)
+                continue
+                ;;
+        esac
 
+        epath=${epath//\\/\/}
         edist=${epath#?(/)EFI/}
         edist=${edist%%/*};
 
         if [ "${edist,,}" = "$distributor" ];
         then
             local new_entry=${bootid#Boot}:$epath;
-            boot_entries=$boot_entries${boot_entries:+ }${new_entry};
+            boot_entries+=(${new_entry});
         fi;
     done < <(efibootmgr -v);
 }
@@ -476,9 +486,20 @@ check_boot_path ()
 
         if [ ${euuid:-00000000-0000-0000-0000-000000000000} != ${uuid} ]; then continue; fi;
 
-        epath=${entry##*/File\(};
-        epath=${epath%\)*};
-        epath=${epath//\\/\/};
+        case $entry in
+            (*/File\(*)
+                epath=${entry##*/File\(}
+                epath=${epath%\)*}
+                ;;
+            (*HD\(*)
+                epath=${entry#*HD\(*)?}
+                ;;
+            (*)
+                continue
+                ;;
+        esac
+
+        epath=${epath//\\/\/}
         epath=${epath,,};
 
         #echo "CMP $epath vs /$path";
@@ -659,7 +680,7 @@ then
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
                       $datadir/default.pf2 \
                       $bindir/steamos-bootconf \
-                      $boot_entries;
+                      "${boot_entries[@]}";
         then
             install_ok=1;
         fi;
@@ -677,7 +698,7 @@ fi;
 
 if [ $esp_boot_ok = 0 ];
 then
-    choose_free_boot_id $all_boot_ids;
+    choose_free_boot_id "${all_boot_ids[@]}";
     if add_boot_entry $distrib $esp_mount \
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
                       $free_boot_id $esp_dev $esp_part "$pretty_name";
