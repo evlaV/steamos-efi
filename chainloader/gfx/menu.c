@@ -56,6 +56,7 @@ typedef struct _gm_priv
     UINT32 background;
     UINT32 outline;
     UINT16 info_frame_size;
+    UINT32 mode;
     struct
     {
         UINT16 height;
@@ -129,15 +130,13 @@ static EFI_STATUS set_mode (menu_engine *engine)
 {
     EFI_STATUS res = EFI_SUCCESS;
     gm_priv *priv = engine->private;
-    UINT32 mode;
 
     if( !priv->gfx )
         res = EFI_NOT_FOUND;
     ERROR_RETURN( res, res, L"Graphics node not available" );
 
-    mode = choose_mode( priv );
-    res = gfx_set_mode( priv->gfx, mode );
-    ERROR_RETURN( res, res, L"Graphics mode not set" );
+    res = gfx_set_mode( priv->gfx, priv->mode );
+    ERROR_RETURN( res, res, L"Graphics mode %d not set", priv->mode );
 
     return res;
 }
@@ -496,12 +495,13 @@ menu_engine *gfx_menu_engine (VOID)
         goto cleanup;
     }
 
-    priv->gfx = gfx;
-
     // make sure the chosen graphics mode is one we can handle
     UINT32 mode = choose_mode( priv );
     EFI_STATUS rc = gfx_mode_supported( gfx, mode );
     ERROR_JUMP( rc, cleanup, "Graphics mode %d", mode );
+
+    priv->gfx  = gfx;
+    priv->mode = mode;
 
     // required members
     engine->private = priv;
