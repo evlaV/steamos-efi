@@ -19,7 +19,7 @@ usage ()
 {
     local -i code="${2:0}"
     
-    if [ -n "${1:-}" ];
+    if [ -n "${1:-}" ]
     then
         echo "Error: ${1}"
         echo
@@ -77,20 +77,20 @@ cache_bootpath ()
     IFS="$_IFS"
     case $payload in
         (HD\(*|*/HD\(*)
-            dev_id=${data#*HD\(*,GPT,};
-            dev_id=${dev_id%%,*,*\)*};
-            dev_id=${dev_id,,};
+            dev_id=${data#*HD\(*,GPT,}
+            dev_id=${dev_id%%,*,*\)*}
+            dev_id=${dev_id,,}
 
             # the automount means /esp and /efi might not be mounted
             # so we have to poke them first:
             ls -1 /esp /efi > /dev/null
 
-            while read -r uuid mount x;
+            while read -r uuid mount x
             do
-                if [ "$uuid" = "$dev_id" ];
+                if [ "$uuid" = "$dev_id" ]
                 then
                     mounted=$mount
-                    break;
+                    break
                 fi
             done < <(lsblk -ro partuuid,mountpoint,label)
             ;;
@@ -101,13 +101,13 @@ cache_bootpath ()
     
     case $data in
         (*/File\(*)
-            path=${data##*/File\(};
-            path=${path%%\)*};
+            path=${data##*/File\(}
+            path=${path%%\)*}
             path=${path,,}
             path=${path//\\/\/}
             ;;
         (*\)RC)
-            path="/efi/boot/bootx64.efi";
+            path="/efi/boot/bootx64.efi"
             ;;
         (HD\(*)
             path=${data#HD\(*)?}
@@ -147,7 +147,7 @@ detect_bootpaths ()
                 next_boot="$label"
                 ;;
             BootOrder)
-                read -ra boot_order < <(echo "$label" | sed -re 's/,/\t/g');
+                read -ra boot_order < <(echo "$label" | sed -re 's/,/\t/g')
                 ;;
             Boot[0-9][0-9][0-9][0-9])
                 [ "$name" = "Boot${this_boot:-}" ] &&
@@ -168,7 +168,7 @@ bootfile_list ()
 {
     local x
     
-    if [ ${#BOOT_PATHS[@]} -eq 0 ];
+    if [ ${#BOOT_PATHS[@]} -eq 0 ]
     then
         local -A paths=()
         if [ -n "${NEXT_BOOTPATH:-}" ]; then paths[$NEXT_BOOTPATH]=1; fi
@@ -214,13 +214,13 @@ show_status ()
         printf "$fmt" "'${flag}'" "log-to-console:" "$state"
 
         flag=$(flagfile "$loader" "$LOGFILE")
-        if [ -f "$flag" ];
+        if [ -f "$flag" ]
         then
             
             state=$(stat -c %s "$flag")
             state="on ($state Bytes)"
         else
-            state=off;
+            state=off
         fi
         printf "$fmt\n" "'${flag}'" "debug-logfile:" "$state"
     done

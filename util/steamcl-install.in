@@ -22,45 +22,45 @@
 # You should have received a copy of the GNU General Public License
 # along with steamos-efi.  If not, see <http://www.gnu.org/licenses/>.
 
-set -eu;
-shopt -s extglob;
+set -eu
+shopt -s extglob
 
 . /etc/os-release
 
-export LC_ALL=C;
-prefix=@prefix@;
-datadir=@datarootdir@/@PACKAGE@;
-libexecdir=@pkglibexecdir@;
-exec_prefix=@exec_prefix@;
-bindir=@bindir@;
+export LC_ALL=C
+prefix=@prefix@
+datadir=@datarootdir@/@PACKAGE@
+libexecdir=@pkglibexecdir@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
 
-ESP_UUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b;
-esp_uuid=;  # uuid (partition type)
-esp_partuuid=; # partuuid (partition uuid)
-esp_dev=;   # /dev/sd?
-esp_part=;  # X (as in /dev/sdaX)
-esp_mount=; # usually /esp on SteamOS 3+
-esp_fs=;    # fs type (vfat)
+ESP_UUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+esp_uuid=  # uuid (partition type)
+esp_partuuid= # partuuid (partition uuid)
+esp_dev=   # /dev/sd?
+esp_part=  # X (as in /dev/sdaX)
+esp_mount= # usually /esp on SteamOS 3+
+esp_fs=    # fs type (vfat)
 
-declare -a boot_entries=(); # list of HEXBOOTID:LOADERPATH
-declare -a all_boot_ids=(); # list of HEXBOOTID
-free_boot_id=; # an unused HEXBOOTID
-boot_path_found=; # set if a matching boot entry was found by check_boot_path
+declare -a boot_entries=() # list of HEXBOOTID:LOADERPATH
+declare -a all_boot_ids=() # list of HEXBOOTID
+free_boot_id= # an unused HEXBOOTID
+boot_path_found= # set if a matching boot entry was found by check_boot_path
 
-pretty_name=${PRETTY_NAME:-"SteamOS"};
-distrib=${ID:-steamos};
-distrib=${distrib,,};
-manifest_checksum=;
-manifest_version=;
-checksum=;
-installpath=EFI/$distrib;
+pretty_name=${PRETTY_NAME:-"SteamOS"}
+distrib=${ID:-steamos}
+distrib=${distrib,,}
+manifest_checksum=
+manifest_version=
+checksum=
+installpath=EFI/$distrib
 
-flags=; # comma separated list of flags
-force_extra_removable=0;
-force_removable_efiboot=0;
+flags= # comma separated list of flags
+force_extra_removable=0
+force_removable_efiboot=0
 
-restricted=0;
-verbose=0;
+restricted=0
+verbose=0
 
 usage_message="\
 $(basename $0) [OPTION]
@@ -107,31 +107,31 @@ version_compare()
 # read in a packaging version file (checksum + package-version)
 read_manifest ()
 {
-    manifest_checksum=;
-    manifest_version=;
-    src=$1;
+    manifest_checksum=
+    manifest_version=
+    src=$1
 
-    if [ -f $src ];
+    if [ -f $src ]
     then
-        read manifest_checksum manifest_version < "$src";
-    fi;
+        read manifest_checksum manifest_version < "$src"
+    fi
 
-    return 0;
+    return 0
 }
 
 calculate_checksum ()
 {
-    local x=;
-    local file=${1:-/dev/null};
+    local x=
+    local file=${1:-/dev/null}
     # checksum of /dev/null
-    checksum=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
+    checksum=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 
     if [ -f "$file" ]
     then
-        read checksum x < <(sha256sum "$file");
-    fi;
+        read checksum x < <(sha256sum "$file")
+    fi
 
-    return 0;
+    return 0
 }
 
 ############################################################################
@@ -147,19 +147,19 @@ unquote()
 
 find_esp ()
 {
-    esp_fs=;
-    esp_dev=;
-    esp_part=;
-    esp_mount=;
-    esp_uuid=;
-    esp_partuuid=;
+    esp_fs=
+    esp_dev=
+    esp_part=
+    esp_mount=
+    esp_uuid=
+    esp_partuuid=
 
-    local part=;
-    local dev=;
-    local ptuid=;
-    local ptuuid=;
-    local fs=;
-    local mount=;
+    local part=
+    local dev=
+    local ptuid=
+    local ptuuid=
+    local fs=
+    local mount=
 
     # In case /esp is supposed to be automounted by systemd,
     # let's make sure it's actually mounted, otherwise the
@@ -167,158 +167,157 @@ find_esp ()
     ls /esp >/dev/null
 
     # Find esp according to fs, parttuid and mountpoint
-    while read part dev ptuid ptuuid fs mount;
+    while read part dev ptuid ptuuid fs mount
     do
-        part=$(unquote "${part#*=}");
-        dev=$(unquote "${dev#*=}");
-        ptuid=$(unquote "${ptuid#*=}");
-        ptuuid=$(unquote "${ptuuid#*=}");
-        fs=$(unquote "${fs#*=}");
-        mount=$(unquote "${mount#*=}");
+        part=$(unquote "${part#*=}")
+        dev=$(unquote "${dev#*=}")
+        ptuid=$(unquote "${ptuid#*=}")
+        ptuuid=$(unquote "${ptuuid#*=}")
+        fs=$(unquote "${fs#*=}")
+        mount=$(unquote "${mount#*=}")
 
-        if [ "$fs"    != vfat        ]; then continue; fi;
-        if [ "$ptuid" != "$ESP_UUID" ]; then continue; fi;
-        if [ "$mount" != /esp        ]; then continue; fi;
+        if [ "$fs"    != vfat        ]; then continue; fi
+        if [ "$ptuid" != "$ESP_UUID" ]; then continue; fi
+        if [ "$mount" != /esp        ]; then continue; fi
 
-        esp_fs="$fs";
-        esp_dev="$dev";
-        esp_part="$part";
-        esp_mount="$mount";
-        esp_uuid="$ptuid";
-        esp_partuuid="$ptuuid";
-        break;
-    done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT);
+        esp_fs="$fs"
+        esp_dev="$dev"
+        esp_part="$part"
+        esp_mount="$mount"
+        esp_uuid="$ptuid"
+        esp_partuuid="$ptuuid"
+        break
+    done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT)
 
     # If not found, loosen the requirement to fs and parttuid only
-    if [ -z "$esp_dev" ] || [ -z "$esp_part" ];
+    if [ -z "$esp_dev" ] || [ -z "$esp_part" ]
     then
-        esp_fs=;
-        esp_dev=;
-        esp_part=;
-        esp_mount=;
-        esp_uuid=;
-        esp_partuuid=;
-        while read part dev ptuid ptuuid fs mount;
+        esp_fs=
+        esp_dev=
+        esp_part=
+        esp_mount=
+        esp_uuid=
+        esp_partuuid=
+        while read part dev ptuid ptuuid fs mount
         do
-            part=$(unquote "${part#*=}");
-            dev=$(unquote "${dev#*=}");
-            ptuid=$(unquote "${ptuid#*=}");
-            ptuuid=$(unquote "${ptuuid#*=}");
-            fs=$(unquote "${fs#*=}");
-            mount=$(unquote "${mount#*=}");
+            part=$(unquote "${part#*=}")
+            dev=$(unquote "${dev#*=}")
+            ptuid=$(unquote "${ptuid#*=}")
+            ptuuid=$(unquote "${ptuuid#*=}")
+            fs=$(unquote "${fs#*=}")
+            mount=$(unquote "${mount#*=}")
 
-            if [ "$fs"    != vfat        ]; then continue; fi;
-            if [ "$ptuid" != "$ESP_UUID" ]; then continue; fi;
+            if [ "$fs"    != vfat        ]; then continue; fi
+            if [ "$ptuid" != "$ESP_UUID" ]; then continue; fi
 
-            esp_fs="$fs";
-            esp_dev="$dev";
-            esp_part="$part";
-            esp_mount="$mount";
-            esp_uuid="$ptuid";
-            esp_partuuid="$ptuuid";
-            break;
-        done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT);
-    fi;
+            esp_fs="$fs"
+            esp_dev="$dev"
+            esp_part="$part"
+            esp_mount="$mount"
+            esp_uuid="$ptuid"
+            esp_partuuid="$ptuuid"
+            break
+        done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT)
+    fi
 
     # If not found, be very loose and just check the mountpoint.
     # This is to workaround https://github.com/go-debos/debos/issues/160
-    if [ -z "$esp_dev" ] || [ -z "$esp_part" ];
+    if [ -z "$esp_dev" ] || [ -z "$esp_part" ]
     then
-        esp_fs=;
-        esp_dev=;
-        esp_part=;
-        esp_mount=;
-        esp_uuid=;
-        esp_partuuid=;
-        while read part dev ptuid ptuuid fs mount;
+        esp_fs=
+        esp_dev=
+        esp_part=
+        esp_mount=
+        esp_uuid=
+        esp_partuuid=
+        while read part dev ptuid ptuuid fs mount
         do
-            part=$(unquote "${part#*=}");
-            dev=$(unquote "${dev#*=}");
-            ptuid=$(unquote "${ptuid#*=}");
-            ptuuid=$(unquote "${ptuuid#*=}");
-            fs=$(unquote "${fs#*=}");
-            mount=$(unquote "${mount#*=}");
+            part=$(unquote "${part#*=}")
+            dev=$(unquote "${dev#*=}")
+            ptuid=$(unquote "${ptuid#*=}")
+            ptuuid=$(unquote "${ptuuid#*=}")
+            fs=$(unquote "${fs#*=}")
+            mount=$(unquote "${mount#*=}")
 
-            if [ "$mount" != /esp ]; then continue; fi;
+            if [ "$mount" != /esp ]; then continue; fi
 
-            esp_fs="$fs";
-            esp_dev="$dev";
-            esp_part="$part";
-            esp_mount="$mount";
-            esp_uuid="$ptuid";
-            esp_partuuid="$ptuuid";
-            break;
-        done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT);
-    fi;
+            esp_fs="$fs"
+            esp_dev="$dev"
+            esp_part="$part"
+            esp_mount="$mount"
+            esp_uuid="$ptuid"
+            esp_partuuid="$ptuuid"
+            break
+        done < <(lsblk -np --pairs -o NAME,PKNAME,PARTTYPE,PARTUUID,FSTYPE,MOUNTPOINT)
+    fi
 
-    if [ -z "$esp_dev" ] || [ -z "$esp_part" ];
+    if [ -z "$esp_dev" ] || [ -z "$esp_part" ]
     then
-        warn "ESP not found by part-type ($ESP_UUID) or path (/esp)";
-        return 1;
-    fi;
+        warn "ESP not found by part-type ($ESP_UUID) or path (/esp)"
+        return 1
+    fi
 
     # If the esp is listed in /etc/fstab or in a systemd mount unit,
     # then it should be easy to mount it.
-    if [ -z "$esp_mount" ];
+    if [ -z "$esp_mount" ]
     then
         mount "$esp_part"
         esp_mount=$(findmnt "$esp_part" -no target)
     fi
 
-    if [ -z "$esp_mount" ];
+    if [ -z "$esp_mount" ]
     then
-        warn "ESP on $esp_part is not mounted";
-        return 1;
-    fi;
+        warn "ESP on $esp_part is not mounted"
+        return 1
+    fi
 
-    esp_part=${esp_part:${#esp_dev}};
-    esp_part=${esp_part/p/};
+    esp_part=${esp_part:${#esp_dev}}
+    esp_part=${esp_part/p/}
 
-    return 0;
+    return 0
 }
 
 ############################################################################
 # whether EFI variables are supported on this system
 efi_vars_supported ()
 {
-    [ -e /sys/firmware/efi/vars ] || [ -e /sys/firmware/efi/efivars ];
+    [ -e /sys/firmware/efi/vars ] || [ -e /sys/firmware/efi/efivars ]
 }
 
 ############################################################################
 # find matching efiboot entries:
 find_boot_entries ()
 {
-    local distributor=${1:-steamos}; shift;
-    local dev=$1;                    shift;
-    local part=${1:-999};            shift;
-    local bootid=;
-    local entry=;
-    local label=;
-    local epart=;
-    local epath=;
-    local edist=;
+    local distributor=${1:-steamos}; shift
+    local dev=$1;                    shift
+    local part=${1:-999};            shift
+    local bootid=
+    local entry=
+    local label=
+    local epart=
+    local epath=
+    local edist=
 
-    all_boot_ids=();
-    boot_entries=();
-    distributor=${distributor,,};
+    all_boot_ids=()
+    boot_entries=()
+    distributor=${distributor,,}
 
-    while read -r bootid entry;
+    while read -r bootid entry
     do
 
-        bootid=${bootid%\*};
+        bootid=${bootid%\*}
 
-        case $bootid in (Boot+([0-9A-Fa-f])) true; ;; *) continue; esac;
+        case $bootid in (Boot+([0-9A-Fa-f])) true; ;; *) continue; esac
 
-        all_boot_ids+=(${bootid#Boot});
+        all_boot_ids+=(${bootid#Boot})
 
-        case $entry  in (*+([ 	])HD\(*) true; ;; *) continue; esac;
+        case $entry  in (*+([ 	])HD\(*) true; ;; *) continue; esac
 
-        label=${entry%%HD\(*};
-
-        epart=${entry#*HD\(};
+        label=${entry%%HD\(*}
+        epart=${entry#*HD\(}
         epart=${epart%%,*}
 
-        if [ ! ${epart:-0} -eq ${part} ]; then continue; fi;
+        if [ ! ${epart:-0} -eq ${part} ]; then continue; fi
 
         case $entry in
             (*/File\(*)
@@ -335,156 +334,159 @@ find_boot_entries ()
 
         epath=${epath//\\/\/}
         edist=${epath#?(/)EFI/}
-        edist=${edist%%/*};
+        edist=${edist%%/*}
 
-        if [ "${edist,,}" = "$distributor" ];
+        if [ "${edist,,}" = "$distributor" ]
         then
-            local new_entry=${bootid#Boot}:$epath;
-            boot_entries+=(${new_entry});
-        fi;
-    done < <(efibootmgr -v);
+            local new_entry=${bootid#Boot}:$epath
+            boot_entries+=(${new_entry})
+        fi
+    done < <(efibootmgr -v)
 }
 
 choose_free_boot_id ()
 {
-    free_boot_id=;
-    local id=0;
+    free_boot_id=
+    local id=0
 
-    for be in "$@";
+    for be in "$@"
     do
-        if [ $((16#$be)) = $id ]; then : $((id++)); fi;
+        if [ $((16#$be)) = $id ]; then : $((id++)); fi
     done
 
-    free_boot_id=$(printf "%04X" $id);
+    free_boot_id=$(printf "%04X" $id)
 }
 
 update_esp ()
 {
-    local dst=$1; shift;
-    local esp=$1; shift;
-    local bin=$1; shift;
-    local ver=$1; shift;
-    local fnt=$1; shift;
-    local cfg=$1; shift;
-    local bootdir=/efi/"$dst";
-    local bootnum=;
-    local entry=;
+    local dst=$1; shift
+    local esp=$1; shift
+    local bin=$1; shift
+    local ver=$1; shift
+    local fnt=$1; shift
+    local cfg=$1; shift
+    local bootdir=/efi/"$dst"
+    local bootnum=
+    local entry=
 
-    for entry in "$@";
+    for entry in "$@"
     do
-        local this_bootnum=${entry%%:*};
-        local this_bootpath=${entry#*:};
+        local this_bootnum=${entry%%:*}
+        local this_bootpath=${entry#*:}
 
-        if [ "${this_bootpath,,}" = "$bootdir/steamcl.efi" ];
+        if [ "${this_bootpath,,}" = "$bootdir/steamcl.efi" ]
         then
-            bootnum="$this_bootnum";
-            break;
-        fi;
-    done;
+            bootnum="$this_bootnum"
+            break
+        fi
+    done
 
-    if [ -n "$bootnum" ];
+    if [ -n "$bootnum" ]
     then
-        echo "Replacing boot entry Boot$bootnum @ $bootdir/steamcl.efi";
+        echo "Replacing boot entry Boot$bootnum @ $bootdir/steamcl.efi"
     else
-        echo "Installing bootloader @ $bootdir/steamcl.efi (first install, no boot entry yet)";
-    fi;
+        echo "Installing bootloader @ $bootdir/steamcl.efi (first install, no boot entry yet)"
+    fi
 
-    mkdir -p ${esp}${bootdir}/fonts;
-    cp -av ${bin} ${esp}${bootdir}/steamcl.efi;
-    cp -av ${ver} ${esp}${bootdir}/steamcl-version;
-    cp -av ${cfg} ${esp}${bootdir}/steamos-bootconf;
-    cp -av ${fnt} ${esp}${bootdir}/fonts/default.pf2;
+    mkdir -p ${esp}${bootdir}/fonts
+    cp -av ${bin} ${esp}${bootdir}/steamcl.efi
+    cp -av ${ver} ${esp}${bootdir}/steamcl-version
+    cp -av ${cfg} ${esp}${bootdir}/steamos-bootconf
+    cp -av ${fnt} ${esp}${bootdir}/fonts/default.pf2
 
     # install the chainloader in the EFI fallback (RC) position in case we boot without an explicit efiboot entry
     # FUTURE: We should skip this step if $espbootloader exists but doesn't look like it's one of ours
     espbootdir=${esp}/efi/boot
-    echo "Installing bootloader to ${espbootdir}/bootx64.efi";
-    mkdir -p ${espbootdir}/fonts;
+    echo "Installing bootloader to ${espbootdir}/bootx64.efi"
+    mkdir -p ${espbootdir}/fonts
     cp -av ${bin} ${espbootdir}/bootx64.efi ||:
     cp -av ${fnt} ${espbootdir}/fonts/default.pf2 ||:
 
-    return 0;
+    return 0
 }
 
 update_flags ()
 {
-    local dst=$1; shift;
-    local esp=$1; shift;
-    declare -a bootdirs;
+    local dst=$1; shift
+    local esp=$1; shift
+    declare -a bootdirs=()
 
-    bootdirs+=(/efi/"$dst");
-    if [ $force_extra_removable = 1 ];
+    bootdirs+=(/efi/"$dst")
+    if [ $force_extra_removable = 1 ]
     then
-        bootdirs+=(/efi/boot);
-    fi;
+        bootdirs+=(/efi/boot)
+    fi
 
-    for bootdir in "${bootdirs[@]}";
+    for bootdir in "${bootdirs[@]}"
     do
-        for flag in restricted verbose;
+        for flag in restricted verbose
         do
-            local flagfile="steamcl-$flag";
-            if [ ${!flag} = 1 ] && [ ! -e ${bootdir}/${flagfile} ];
+            local flagfile="steamcl-$flag"
+            if [ ${!flag} = 1 ] && [ ! -e ${bootdir}/${flagfile} ]
             then
-                echo "Enabling flag @ ${bootdir}/${flagfile}";
-                mkdir -p ${esp}${bootdir};
-                touch ${esp}${bootdir}/${flagfile};
-                echo "-> '${esp}${bootdir}/${flagfile}'";
-            elif [ ${!flag} = 0 ] && [ -e ${bootdir}/${flagfile} ];
+                echo "Enabling flag @ ${bootdir}/${flagfile}"
+                mkdir -p ${esp}${bootdir}
+                touch ${esp}${bootdir}/${flagfile}
+                echo "-> '${esp}${bootdir}/${flagfile}'"
+            elif [ ${!flag} = 0 ] && [ -e ${bootdir}/${flagfile} ]
             then
-                echo "Removing flag @ ${bootdir}/${flagfile}";
-                rm -fv ${esp}${bootdir}/${flagfile};
-            fi;
-        done;
-    done;
+                echo "Removing flag @ ${bootdir}/${flagfile}"
+                rm -fv ${esp}${bootdir}/${flagfile}
+            fi
+        done
+    done
 }
 
 add_boot_entry ()
 {
-    local dst=$1;
-    local esp=$2;
-    local bin=$3;
-    local ver=$4;
-    local bid=$5;
-    local dev=$6;
-    local gpt=$7;
-    local nam=$8;
+    local dst=$1
+    local esp=$2
+    local bin=$3
+    local ver=$4
+    local bid=$5
+    local dev=$6
+    local gpt=$7
+    local nam=$8
 
-    local dir=/EFI/"$dst";
-    local path="$esp""$dir";
-    local ldr=$(basename $bin);
+    local dir=/EFI/"$dst"
+    local path="$esp""$dir"
+    local ldr=$(basename $bin)
 
-    printf "Creating Boot%s %s\n" ${bid:-0000} "$nam";
-    dir=${dir//\//\\};
-    efibootmgr -b $bid -c -d $dev -p $gpt -L "$nam" -l "$dir\\$ldr" > /dev/null;
+    printf "Creating Boot%s %s\n" ${bid:-0000} "$nam"
+    dir=${dir//\//\\}
+    efibootmgr -b $bid -c -d $dev -p $gpt -L "$nam" -l "$dir\\$ldr" > /dev/null
 }
 
 check_boot_path ()
 {
-    local part=$1;
-    local uuid=$2;
-    local path=${3,,};
-    local bootid=;
-    local entry=;
-    local epart=;
-    local euuid=;
-    local epath=;
-    boot_path_found=;
+    local part=$1
+    local uuid=$2
+    local path=${3,,}
+    local bootid=
+    local entry=
+    local epart=
+    local euuid=
+    local epath=
+    boot_path_found=
 
-    while read -r bootid entry;
+    while read -r bootid entry
     do
-        bootid=${bootid%\*};
-        case $bootid in (Boot+([0-9A-Fa-f])) true; ;; *) continue; esac;
-        case $entry  in (*+([ 	])HD\(*)     true; ;; *) continue; esac;
+        bootid=${bootid%\*}
+        case $bootid in (Boot+([0-9A-Fa-f])) true; ;; *) continue; esac
+        case $entry  in (*+([ 	])HD\(*)     true; ;; *) continue; esac
 
-        epart=${entry#*HD\(};
+        epart=${entry#*HD\(}
         epart=${epart%%,*}
 
-        if [ ! ${epart:-0} -eq ${part} ]; then continue; fi;
+        if [ ! ${epart:-0} -eq ${part} ]; then continue; fi
 
-        euuid=${entry#*GPT,};
+        euuid=${entry#*GPT,}
         euuid=${euuid%%,*}
 
-        if [ ${euuid:-00000000-0000-0000-0000-000000000000} != ${uuid} ]; then continue; fi;
+        if [ ${euuid:-00000000-0000-0000-0000-000000000000} != ${uuid} ]
+        then
+            continue
+        fi
 
         case $entry in
             (*/File\(*)
@@ -500,168 +502,168 @@ check_boot_path ()
         esac
 
         epath=${epath//\\/\/}
-        epath=${epath,,};
+        epath=${epath,,}
 
-        #echo "CMP $epath vs /$path";
+        #echo "CMP $epath vs /$path"
 
-        if [ "$epath" = "/$path" ];
+        if [ "$epath" = "/$path" ]
         then
-            boot_path_found=$epath;
-            break;
-        fi;
-    done < <(efibootmgr -v);
+            boot_path_found=$epath
+            break
+        fi
+    done < <(efibootmgr -v)
 
-    [ "$boot_path_found" != "" ];
+    [ "$boot_path_found" != "" ]
 }
 
 ############################################################################
 # check to see if we're running off removable media
 os_on_removable_media ()
 {
-    local path=$(readlink -f "$0");
-    local bdev=$(df --output=source "$path" | tail -n +2);
+    local path=$(readlink -f "$0")
+    local bdev=$(df --output=source "$path" | tail -n +2)
 
-    if [ -n "$bdev" ];
+    if [ -n "$bdev" ]
     then
-        local remo;
-        read remo < <(lsblk "$bdev" -o RM | tail -n +2);
+        local remo
+        read remo < <(lsblk "$bdev" -o RM | tail -n +2)
 
-        if [ x"$remo" = x1 ];
+        if [ x"$remo" = x1 ]
         then
-            return 0;
-        fi;
-    fi;
+            return 0
+        fi
+    fi
 
-    false;
+    false
 }
 
 ############################################################################
 # Do we need to add an efi boot entry
 need_new_efi_boot_entry ()
 {
-    local epart=$1;
-    local epath=$2;
-    local euuid=${3:-};
+    local epart=$1
+    local epath=$2
+    local euuid=${3:-}
 
     # _not_ forcing removable efi boot and we are actually on a removable medium:
-    if [ $force_removable_efiboot -eq 0 ] && os_on_removable_media;
+    if [ $force_removable_efiboot -eq 0 ] && os_on_removable_media
     then
-        return 1;
-    fi;
+        return 1
+    fi
 
     # efi boot entry are not supported
-    if ! efi_vars_supported;
+    if ! efi_vars_supported
     then
-        return 1;
-    fi;
+        return 1
+    fi
 
     # efi boot entry already exists
-    if check_boot_path $epart $euuid $epath;
+    if check_boot_path $epart $euuid $epath
     then
-        return 1;
-    fi;
+        return 1
+    fi
 
-    return 0;
+    return 0
 }
 
 ############################################################################
 
-while [ "$#" -gt 0 ];
+while [ "$#" -gt 0 ]
 do
     case "$1" in
         (--flags)
-            shift;
-            flags=$1;
-            shift;
+            shift
+            flags=$1
+            shift
             ;;
 
         (--force-extra-removable)
-            force_extra_removable=1;
-            shift;
+            force_extra_removable=1
+            shift
             ;;
 
         (--force-removable-efiboot)
-            force_removable_efiboot=1;
-            shift;
+            force_removable_efiboot=1
+            shift
             ;;
 
         (--help|-h)
-            echo "$usage_message";
-            exit 0;
+            echo "$usage_message"
+            exit 0
             ;;
 
         (*)
-            warn "Unexpected argument '$1'";
-            exit 1;
+            warn "Unexpected argument '$1'"
+            exit 1
             ;;
     esac
 done
 
-for f in ${flags//,/ };
+for f in ${flags//,/ }
 do
     case $f in
         (restricted)
-            restricted=1;
+            restricted=1
             ;;
 
         (verbose)
-            verbose=1;
+            verbose=1
             ;;
 
         (*)
-            warn "Invalid flag $f";
-            exit 1;
+            warn "Invalid flag $f"
+            exit 1
             ;;
     esac
 done
 
-find_esp;
-echo "ESP $esp_fs $esp_uuid on $esp_dev GPT#$esp_part ${esp_partuuid:+PARTUUID=$esp_partuuid} ($esp_mount)";
-find_boot_entries $distrib $esp_dev $esp_part;
+find_esp
+echo "ESP $esp_fs $esp_uuid on $esp_dev GPT#$esp_part ${esp_partuuid:+PARTUUID=$esp_partuuid} ($esp_mount)"
+find_boot_entries $distrib $esp_dev $esp_part
 
 # now some diagnotics:
-esp_csum_ok=0;  # does the binary's checksum match the manifest's?
-esp_boot_ok=0   # is there a bootloader entry for the canonical loader path?
-pkg_csum_ok=0;  # is the package's bootloader binary ok?
-esp_version=;   # version of the loader on the ESP (according to manifest)
-pkg_version=;   # version of the loader package in the OS
-pkg_checksum=;  # checksum of the loader binary in the OS package
-esp_checksum=;  # checksum of the loader binary on the ESP
-pkg_is_newer=0; # OS package has a newer loader than the ESP
+esp_csum_ok=0  # does the binary's checksum match the manifest's?
+esp_boot_ok=0  # is there a bootloader entry for the canonical loader path?
+pkg_csum_ok=0  # is the package's bootloader binary ok?
+esp_version=   # version of the loader on the ESP (according to manifest)
+pkg_version=   # version of the loader package in the OS
+pkg_checksum=  # checksum of the loader binary in the OS package
+esp_checksum=  # checksum of the loader binary on the ESP
+pkg_is_newer=0 # OS package has a newer loader than the ESP
 
-read_manifest "$esp_mount/$installpath"/steamcl-version;
-calculate_checksum "$esp_mount/$installpath"/steamcl.efi;
-if [ ${checksum:-0} = ${manifest_checksum:-1} ];
+read_manifest "$esp_mount/$installpath"/steamcl-version
+calculate_checksum "$esp_mount/$installpath"/steamcl.efi
+if [ ${checksum:-0} = ${manifest_checksum:-1} ]
 then
-    esp_csum_ok=1;
-    esp_version=$manifest_version;
-    esp_checksum=$manifest_checksum;
-fi;
+    esp_csum_ok=1
+    esp_version=$manifest_version
+    esp_checksum=$manifest_checksum
+fi
 
-if ! need_new_efi_boot_entry $esp_part $installpath/steamcl.efi $esp_partuuid;
+if ! need_new_efi_boot_entry $esp_part $installpath/steamcl.efi $esp_partuuid
 then
-    esp_boot_ok=1;
-fi;
+    esp_boot_ok=1
+fi
 
-read_manifest "$datadir"/steamcl-version;
-calculate_checksum "$libexecdir"/steamcl.efi;
-if [ ${checksum:-0} = ${manifest_checksum:-1} ];
+read_manifest "$datadir"/steamcl-version
+calculate_checksum "$libexecdir"/steamcl.efi
+if [ ${checksum:-0} = ${manifest_checksum:-1} ]
 then
-    pkg_csum_ok=1;
-    pkg_version=$manifest_version;
-    pkg_checksum=$manifest_checksum;
-fi;
+    pkg_csum_ok=1
+    pkg_version=$manifest_version
+    pkg_checksum=$manifest_checksum
+fi
 
-if version_compare "${esp_version:-0}" lt "${pkg_version:-0}";
+if version_compare "${esp_version:-0}" lt "${pkg_version:-0}"
 then
-    pkg_is_newer=1;
-elif version_compare "${esp_version:-0}" eq "${pkg_version:-0}";
+    pkg_is_newer=1
+elif version_compare "${esp_version:-0}" eq "${pkg_version:-0}"
 then
     # updated(?) package without a version bump
-    if [ "$esp_checksum" != "$pkg_checksum" ];
+    if [ "$esp_checksum" != "$pkg_checksum" ]
     then
-        pkg_is_newer=1;
-    fi;
+        pkg_is_newer=1
+    fi
 fi
 
 # let's walk through the logic here:
@@ -671,52 +673,52 @@ fi
 
 install_ok=1 # might not want/need a copy at all
 
-if [ ${pkg_is_newer:-0} = 1 ] || [ $esp_csum_ok = 0 ];
+if [ ${pkg_is_newer:-0} = 1 ] || [ $esp_csum_ok = 0 ]
 then
-    install_ok=0; # ok, we do need to copy the files in:
+    install_ok=0 # ok, we do need to copy the files in:
     if [ $pkg_csum_ok = 1 ]
     then
         if update_esp $distrib $esp_mount \
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
                       $datadir/default.pf2 \
                       $bindir/steamos-bootconf \
-                      "${boot_entries[@]}";
+                      "${boot_entries[@]}"
         then
-            install_ok=1;
-        fi;
+            install_ok=1
+        fi
     else
-        echo Package checksum failure: $libexecdir/steamcl.efi:;
-        echo " " checksum: $checksum;
-        echo " " expected: $pkg_checksum;
-    fi;
-fi;
+        echo Package checksum failure: $libexecdir/steamcl.efi:
+        echo " " checksum: $checksum
+        echo " " expected: $pkg_checksum
+    fi
+fi
 
-if [ -n "$flags" ];
+if [ -n "$flags" ]
 then
-    update_flags $distrib $esp_mount;
-fi;
+    update_flags $distrib $esp_mount
+fi
 
-if [ $esp_boot_ok = 0 ];
+if [ $esp_boot_ok = 0 ]
 then
-    choose_free_boot_id "${all_boot_ids[@]}";
+    choose_free_boot_id "${all_boot_ids[@]}"
     if add_boot_entry $distrib $esp_mount \
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
-                      $free_boot_id $esp_dev $esp_part "$pretty_name";
+                      $free_boot_id $esp_dev $esp_part "$pretty_name"
     then
-        esp_boot_ok=1;
-    fi;
-fi;
+        esp_boot_ok=1
+    fi
+fi
 
-if [ $install_ok = 0 ];
+if [ $install_ok = 0 ]
 then
-    echo ESP: Failed to install $libexecdir/steamcl.efi on $esp_mount;
-    exit 1;
-fi;
+    echo ESP: Failed to install $libexecdir/steamcl.efi on $esp_mount
+    exit 1
+fi
 
-if [ $esp_boot_ok = 0 ];
+if [ $esp_boot_ok = 0 ]
 then
-    echo ESP: Failed to create boot entry $free_boot_id;
-    exit 1;
-fi;
+    echo ESP: Failed to create boot entry $free_boot_id
+    exit 1
+fi
 
-exit 0;
+exit 0
