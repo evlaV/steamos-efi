@@ -34,11 +34,11 @@ stages:
 
 build:debian-12:
   extends: .build_apt_template
-  image: debian:bookworm-slim
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:bookworm-slim
 
 build:arch:
   extends: .build_pac_template
-  image: archlinux:base-devel
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/archlinux:base-devel
 
 build:jupiter:
   extends: .build_pac_template
