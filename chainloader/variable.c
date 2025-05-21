@@ -666,31 +666,46 @@ UINTN get_chainloader_boot_attempts ()
 }
 
 typedef struct { UINT8 header[2]; UINT8 state[1]; } hw_button_state;
+typedef struct { EFI_GUID guid; CHAR16 *name; } efi_var;
 
-UINTN get_hw_config_button_state (void)
+static UINT8 var_to_uint (hw_button_state *button)
 {
-    EFI_GUID guid = DECK_FIRMWARE_GUID;
-    UINTN res = 0;
-    UINTN size;
-    VOID *val;
+    if( !button )
+        return 0;
 
     // contents are: 0xde 0xc1 0xXX
     // ie 2 bytes of ident header as a sanity check, and 1 byte of state
-    // state is 0x00 is the key(s) of interest were not pressed:
-    val = get_efivar( L"JupiterFunctionConfigVariable", &guid, &size );
+    // state is 0x00 if no key(s) of interest were pressed:
+    if( button->header[0] == 0xde &&
+        button->header[1] == 0xc1 )
+        return button->state[0];
 
-    if( val )
+    return 0;
+}
+
+UINTN get_hw_config_button_state (void)
+{
+    efi_var control[] = { { .guid = DECK_FIRMWARE_GUID,
+                            .name = L"JupiterFunctionConfigVariable" },
+                          { .guid = CHAINLOADER_VARIABLE_GUID,
+                            .name = L"BootControl" },
+                          { .guid = NULL_GUID, .name = NULL } };
+
+    for( UINTN i = 0; control[i].name != NULL; i++ )
     {
-        hw_button_state *conf = val;
+        UINTN size = 0;
+        VOID *val = get_efivar( control[i].name, &control[i].guid, &size );
 
-        if( conf->header[0] == 0xde &&
-            conf->header[1] == 0xc1 )
-            res = (UINTN)conf->state[0];
-        efi_free( val );
+        if( val )
+        {
+            UINTN res = var_to_uint( (hw_button_state *)val );
+            efi_free( val );
+
+            return res;
+        }
     }
 
-    return res;
-
+    return 0;
 }
 
 EFI_STATUS set_chainloader_boot_attempts ()

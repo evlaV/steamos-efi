@@ -79,6 +79,15 @@ A non-zero value for a well-known vendor NVRAM variable:
     Contents:       0xde 0xc1 0x01
     Variable type:  volatile [not required, but good practice]
 
+You may also set this generically named value for the same effect
+(although note that if you set both, JupiterFunctionConfigVariable
+takes priority):
+
+    UEFI Namespace: 399abb9b-4bee-4a18-ab5b-45c6e0e8c716
+    Variable Name:  BootControl
+    Contents:       0xde 0xc1 0x01
+    Variable type:  volatile [not required, but good practice]
+
 Note that the first two bytes are UEFI variable header data:
 You _may_ not need to explicitly set them if your UEFI support 
 takes care of that when assigning uint8 or byte values to UEFI 
