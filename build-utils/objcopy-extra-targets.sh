@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright © 2024-2025 Collabora Ltd.
+# Copyright © 2024-2025 Valve Corporation
+
 set -eu
 shopt -s nullglob
 
@@ -35,7 +38,7 @@ for section in "${!targets[@]}"
 do
     case $section in
         # we already know we want these
-        data|dynamic|dynsym|rel*|rela*|sdata|text)
+        data|dynamic|rel*|rela*|sdata|text|rodata|areloc|reloc)
             true
             ;;
         # these we explicitly don't care about

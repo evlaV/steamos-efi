@@ -2,8 +2,8 @@
 
 # Process this file with autoconf to produce a configure script.
 
-# Copyright © 2018-2023 Collabora Ltd.
-# Copyright © 2020-2023 Valve Corporation
+# Copyright © 2018-2025 Collabora Ltd.
+# Copyright © 2018-2025 Valve Corporation
 
 #
 # This configure.ac is free software; the author
@@ -311,33 +311,33 @@ AS_CASE(["$target_cpu"-"$platform"],[x86_64-efi],
 
 AS_CASE([$with_efilib],
         [gnu],
-        [EFI_INC=/usr/include/efi]
-        [EFI_LIB=/usr/lib]
-        [EFI_EXTRALIBS="-lefi -lgnuefi $($TARGET_CC -print-libgcc-file-name)"]
-        [EFI_LDSCRIPT=${EFI_LIB}/elf_${target_cpu}_efi.lds]
-        [EFI_CRTOBJS=${EFI_LIB}/crt0-efi-${target_cpu}.o]
+        [PKG_CHECK_MODULES(GNUEFI, [gnu-efi >= 3.0.18],
+                           [GNUEFI_CFLAGS=$(echo $GNUEFI_CFLAGS)]
+                           [GNUEFI_LIBS=$(echo $GNUEFI_LIBS)])]
+        [PKG_CHECK_VAR(GNUEFI_LIBDIR, [gnu-efi], libdir)]
+        [EFI_EXTRALIBS="${GNUEFI_LIBS} -lgnuefi $($TARGET_CC -print-libgcc-file-name)"]
+        [EFI_LDSCRIPT=${GNUEFI_LIBDIR}/elf_${target_cpu}_efi.lds]
+        [EFI_CRTOBJS=${GNUEFI_LIBDIR}/crt0-efi-${target_cpu}.o]
         [EFI_LDFLAGS="-T ${EFI_LDSCRIPT} -shared -Bsymbolic -nostdlib"]
-        [EFI_LDFLAGS="${EFI_LDFLAGS} -L${EFI_LIB} ${EFI_CRTOBJS}"]
-        [EFI_CFLAGS="-fpic -I $EFI_INC -I${EFI_INC}/${target_cpu}"]
+        [EFI_LDFLAGS="${EFI_LDFLAGS} -L${GNUEFI_LIBDIR} ${EFI_CRTOBJS}"]
+        [EFI_CFLAGS="$GNUEFI_CFLAGS $GNUEFI_CFLAGS/${target_cpu}"]
         [EFI_CFLAGS="${EFI_CFLAGS} -DGNU_EFI_USE_MS_ABI"]
-        [EFI_CFLAGS="$EFI_CFLAGS -I ${EFI_INC}/protocol"]
-        [EFI_SECT="text sdata data dynamic dynsym rel rela rel.\* rel\* rela\*"],
+        [EFI_CFLAGS="$EFI_CFLAGS ${GNUEFI_CFLAGS}/protocol"]
+        [EFI_SECT="text sdata data dynamic rodata rel rela rel.\* rel\* rela.\* rela\* areloc reloc"],
         [tiano], [AC_MSG_ERROR(["tiano core efi is not supported yet"])],
         [AC_MSG_ERROR(["--with-efilib= value must be gnu or tiano"])])
 
-AC_MSG_CHECKING([for extra objcopy targets based on gnu-efi in "$EFI_LIB"])
+AC_MSG_CHECKING([for extra objcopy targets based on gnu-efi in "${GNUEFI_LIBDIR}"])
 dnl This finds objcopy sections in objects shipped by gnu-efi that
 dnl we didn't expect to find: Hopefully this will automatically
 dnl cope when gnu-efi adds a section to its implicit requirements
-_x=$(${srcdir}/build-utils/objcopy-extra-targets.sh "${EFI_LIB}")
+_x=$(${srcdir}/build-utils/objcopy-extra-targets.sh "${GNUEFI_LIBDIR}")
 AS_IF([test -n "$_x"],
       [EFI_SECT="${EFI_SECT} $_x"; AC_MSG_RESULT([$_x])],
       [AC_MSG_RESULT([-none-])])
 for x in $EFI_SECT; do EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS -j .$x"; done;
 EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --target=$platform-app-$target_cpu";
 
-AC_SUBST([EFI_INC])
-AC_SUBST([EFI_LIB])
 AC_SUBST([EFI_LDSCRIPT])
 AC_SUBST([EFI_LDFLAGS])
 AC_SUBST([EFI_CFLAGS])
@@ -348,12 +348,16 @@ AC_SUBST([EFI_OBJCOPYARGS])
 cc_has_PIE()
 
 AS_IF([test x"$cv_cc_has_pie" = xyes],
-      [EFI_CFLAGS="$EFI_CFLAGS -fPIC -fno-pie -fno-PIE"])
+      [EFI_CFLAGS="-fPIE $EFI_CFLAGS"])
 
 dnl We used to jump through some hoops here to make sure the linker and
 dnl compiler PIE/PIC flags were in sync but it would appear to no longer
-dnl be necessary. Also the anti-PIE flags have changed in an incompatible
-dnl way which is tremendously annoying to manage manually.
+dnl be necessary.
+
+dnl As of gnu-efi 3.0.18 the linker scripts have been changed so that PIE
+dnl works which also improves compatibility with recent UEFI implementations
+dnl so not only do we no longer need to suppress PIE/pie in favour of PIC
+dnl we actively don't want to.
 
 TARGET_LDFLAGS="$TARGET_LDFLAGS -znocombreloc -zdefs"
 TARGET_CFLAGS="$TARGET_CFLAGS -fno-stack-protector"

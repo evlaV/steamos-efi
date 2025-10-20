@@ -23,7 +23,7 @@ stages:
     - apt update
     - apt install -y build-essential
     - apt install -y autoconf autoconf-archive pkg-config
-    - apt install -y grub fontconfig fonts-noto-core gnu-efi
+    - apt install -y grub2-common fontconfig fonts-noto-core gnu-efi
 
 .build_pac_template:
   extends: .build_template
@@ -32,9 +32,9 @@ stages:
     - pacman -S --noconfirm base-devel
     - pacman -S --noconfirm grub fontconfig noto-fonts gnu-efi-libs
 
-build:debian-12:
+build:debian-13:
   extends: .build_apt_template
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:bookworm-slim
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:trixie-slim
 
 build:arch:
   extends: .build_pac_template

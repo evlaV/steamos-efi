@@ -131,7 +131,7 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        $(empty)
 
 steamcl_elf_CFLAGS   = $(EFI_CFLAGS) -DRELEASE_VERSION="\"$(RELEASE_VERSION)\""
-steamcl_elf_CFLAGS  += -I${EFI_INC} -I${EFI_INC}/${build_cpu} $(CODING_STANDARDS)
+steamcl_elf_CFLAGS  += $(CODING_STANDARDS)
 steamcl_elf_LDFLAGS  = $(LDFLAGS) $(EFI_LDFLAGS)
 steamcl_elf_LDADD    = $(EFI_EXTRALIBS)
 steamcl_elf_LINK     = $(LD) $(steamcl_elf_LDFLAGS) -o $@
