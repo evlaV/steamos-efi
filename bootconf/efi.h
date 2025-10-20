@@ -23,7 +23,7 @@
 // managing chainloader metadata.
 
 // We want the metadata parsing and saving tools to share their
-// implementations BUT UEFI is not very psox shaped, so these #defines
+// implementations BUT UEFI is not very posix shaped, so these #defines
 // are here to allow utility functions with the same signatures to be
 // used transparently in both the UEFI and POSIX/ELF implementations
 // without changing the parser/etc code.
