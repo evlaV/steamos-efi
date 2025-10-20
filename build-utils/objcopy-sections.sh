@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright © 2024-2025 Collabora Ltd.
+# Copyright © 2024-2025 Valve Corporation
+
 set -eu
 shopt -s extglob
 

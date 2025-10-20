@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright © 2019,2021,2023 Collabora Ltd
+// Copyright © 2019,2021,2023 Valve Corporation
+
 #pragma once
 
 #include <stdint.h>
@@ -19,7 +23,7 @@
 // managing chainloader metadata.
 
 // We want the metadata parsing and saving tools to share their
-// implementations BUT UEFI is not very psox shaped, so these #defines
+// implementations BUT UEFI is not very posix shaped, so these #defines
 // are here to allow utility functions with the same signatures to be
 // used transparently in both the UEFI and POSIX/ELF implementations
 // without changing the parser/etc code.

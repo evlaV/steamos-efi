@@ -3,8 +3,8 @@
 # steamos-efi  --  SteamOS EFI Chainloader
 
 # SPDX-License-Identifier: GPL-2.0+
-# Copyright © 2020 Collabora Ltd
-# Copyright © 2020 Valve Corporation
+# Copyright © 2020,2022 Collabora Ltd
+# Copyright © 2020,2022 Valve Corporation
 
 # This file is part of steamos-efi.
 

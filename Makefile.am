@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 # This file is part of steamos-efi.
 
-# Copyright © 2018-2023 Collabora Ltd
-# Copyright © 2018-2023 Valve Corporation
+# Copyright © 2018-2025 Collabora Ltd
+# Copyright © 2018-2025 Valve Corporation
 
 # steamos-efi is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ steamcl_elf_SOURCES  = chainloader/chainloader.c \
                        $(empty)
 
 steamcl_elf_CFLAGS   = $(EFI_CFLAGS) -DRELEASE_VERSION="\"$(RELEASE_VERSION)\""
-steamcl_elf_CFLAGS  += -I${EFI_INC} -I${EFI_INC}/${build_cpu} $(CODING_STANDARDS)
+steamcl_elf_CFLAGS  += $(CODING_STANDARDS)
 steamcl_elf_LDFLAGS  = $(LDFLAGS) $(EFI_LDFLAGS)
 steamcl_elf_LDADD    = $(EFI_EXTRALIBS)
 steamcl_elf_LINK     = $(LD) $(steamcl_elf_LDFLAGS) -o $@

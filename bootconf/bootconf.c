@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright © 2019-2022 Collabora Ltd
+// Copyright © 2019-2022 Valve Corporation
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

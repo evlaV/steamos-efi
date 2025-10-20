@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: GPL-2.0+
+# Copyright © 2023,2025 Collabora Ltd
+# Copyright © 2023,2025 Valve Corporation
+
 set -eu
 shopt -s extglob
 
