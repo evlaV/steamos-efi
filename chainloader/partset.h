@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 // Copyright © 2021 Collabora Ltd
 // Copyright © 2021 Valve Corporation
-// Copyright © 2021 Vivek Das Mohapatra <vivek@etla.org>
 
 // steamos-efi is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
