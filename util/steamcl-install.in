@@ -391,7 +391,7 @@ update_esp ()
     mkdir -p ${esp}${bootdir}/fonts
     cp -av ${bin} ${esp}${bootdir}/steamcl.efi
     cp -av ${ver} ${esp}${bootdir}/steamcl-version
-    cp -av ${cfg} ${esp}${bootdir}/steamos-bootconf
+    cp -av ${cfg} ${esp}${bootdir}/holo-bootconf
     cp -av ${fnt} ${esp}${bootdir}/fonts/default.pf2
 
     # install the chainloader in the EFI fallback (RC) position in case we boot without an explicit efiboot entry
@@ -681,7 +681,7 @@ then
         if update_esp $distrib $esp_mount \
                       $libexecdir/steamcl.efi $datadir/steamcl-version \
                       $datadir/default.pf2 \
-                      $bindir/steamos-bootconf \
+                      $bindir/holo-bootconf \
                       "${boot_entries[@]}"
         then
             install_ok=1

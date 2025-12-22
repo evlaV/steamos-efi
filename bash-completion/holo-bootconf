@@ -40,7 +40,7 @@ _get_n_arg()
     done
 }
 
-_steamos-bootconf()
+_holo-bootconf()
 {
     local cur prev words cword
     _init_completion || return
@@ -83,4 +83,4 @@ _steamos-bootconf()
         COMPREPLY+=($(compgen -W "-h --help --output-to" -- "$cur"))
     fi
 } &&
-complete -F _steamos-bootconf steamos-bootconf
+complete -F _holo-bootconf holo-bootconf
