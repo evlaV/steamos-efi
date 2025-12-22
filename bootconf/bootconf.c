@@ -966,7 +966,7 @@ static const cmd_handler *preprocess_cmd (int argc,
     }
 
     // default command is "config" to match the behaviour of the previous
-    // version(s) of steamos-bootconf:
+    // version(s) of holo-bootconf:
     for( handler = &cmd_handlers[ 0 ]; handler->cmd; handler++ )
     {
         if( strcmp( handler->cmd, "config" ) )
@@ -1360,7 +1360,7 @@ int main (int argc, char **argv)
 
     if( !cmd )
     {
-        // this was the old no-args-at-all behaviour of steamos-bootconf
+        // this was the old no-args-at-all behaviour of holo-bootconf
         print_skeleton();
     }
     else if( cmd->postprocess ) // no postprocess => don't parse remaining args

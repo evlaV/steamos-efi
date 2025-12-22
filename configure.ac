@@ -15,15 +15,15 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-dnl This configure script is complicated, because steamos-efi needs to deal
+dnl This configure script is complicated, because holo-efi needs to deal
 dnl with three potentially different types:
 dnl
 dnl   build  -- the environment for building GRUB
 dnl   host   -- the environment for running utilities
 dnl   target -- the environment for running GRUB
 dnl
-dnl In addition, steamos-efi needs to deal with a platform specification
-dnl which specifies the system running steamos-efi, such as firmware.
+dnl In addition, holo-efi needs to deal with a platform specification
+dnl which specifies the system running holo-efi, such as firmware.
 dnl This is necessary because the target type in autoconf does not
 dnl describe such a system very well.
 dnl
@@ -34,7 +34,7 @@ dnl with the prefix "TARGET_" (such as TARGET_CC, TARGET_CFLAGS, etc.) are
 dnl used for the target type. See INSTALL for full list of variables.
 
 AC_PREREQ([2.60])
-AC_INIT([steamos-efi],[1.11],[vivek@collabora.com])
+AC_INIT([holo-efi],[1.12],[vivek@collabora.com])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 

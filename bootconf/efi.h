@@ -19,7 +19,7 @@
 // IMPORTANT NOTE
 
 // We build two types of binary from this source tree: UEFI executables
-// (the chainloader itself) and OS utilities (eg steamos-bootconf) for
+// (the chainloader itself) and OS utilities (eg holo-bootconf) for
 // managing chainloader metadata.
 
 // We want the metadata parsing and saving tools to share their

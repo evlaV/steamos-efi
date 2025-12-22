@@ -231,8 +231,8 @@ show_status ()
 
     while read -r bootable img cur
     do
-        read -r raw raw < <(steamos-bootconf config --image "$img" \
-                                            --get verbose 2>/dev/null)
+        read -r raw raw < <(holo-bootconf config --image "$img" \
+                                          --get verbose 2>/dev/null)
         vflag=${raw:-0}
 
         if [ ${vflag:-0} -eq 0 ]
@@ -249,7 +249,7 @@ show_status ()
         fi
 
         echo "Image $img kernel-boot-log to console: $state"
-    done < <(steamos-bootconf list-images)
+    done < <(holo-bootconf list-images)
 
     echo
     [ -n "${NEXT_BOOTPATH:-}" ] && echo "Next boot: ${NEXT_BOOTPATH}" 
@@ -353,7 +353,7 @@ process_args ()
                 images+=("$img")
                 break
             fi
-        done < <(steamos-bootconf list-images)
+        done < <(holo-bootconf list-images)
 
         if [ -z "${IMAGE:-}" ]
         then
@@ -374,13 +374,13 @@ case $MODE in
         touch /esp/efi/{boot,steamos}/steamcl-verbose
         ;;
     kernel-debug)
-        steamos-bootconf ${IARG:-} config --set verbose 1
+        holo-bootconf ${IARG:-} config --set verbose 1
         ;;
     kernel-debug-once)
-        steamos-bootconf ${IARG:-} config --set verbose 255
+        holo-bootconf ${IARG:-} config --set verbose 255
         ;;
     kernel-quiet)
-        steamos-bootconf ${IARG:-} config --set verbose 0
+        holo-bootconf ${IARG:-} config --set verbose 0
         ;;
     quiet)
         for _x in $(bootfile_list)

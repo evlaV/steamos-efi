@@ -1,28 +1,28 @@
 # SPDX-License-Identifier: GPL-2.0+
-# This file is part of steamos-efi.
+# This file is part of holo-efi.
 
 # Copyright © 2018-2025 Collabora Ltd
 # Copyright © 2018-2025 Valve Corporation
 
-# steamos-efi is free software: you can redistribute it and/or modify
+# holo-efi is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2.0 of the License, or
 # (at your option) any later version.
 
-# steamos-efi is distributed in the hope that it will be useful,
+# holo-efi is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with steamos-efi.  If not, see <http://www.gnu.org/licenses/>.
+# along with holo-efi.  If not, see <http://www.gnu.org/licenses/>.
 
 AUTOMAKE_OPTIONS = subdir-objects
 CHAR_TYPES       = -fshort-wchar -funsigned-char
 CODING_STANDARDS = -std=gnu18 $(CHAR_TYPES) -Wall -Wextra -Werror
 EXTRA_DIST       = build-utils/objcopy-sections.sh \
                    build-utils/objcopy-extra-targets.sh
-
+SHELL           := /bin/bash
 ############################################################################
 # cosmetic settings to make the objcopy output tidy when using silent rules
 am__v_OC_   = $(am__v_OC_$(AM_DEFAULT_VERBOSITY))
@@ -48,17 +48,18 @@ empty :=
 ACLOCAL_AMFLAGS  = -I m4
 DEFAULT_FONT_FILE=$(shell $(FCMATCH) "$(font)" -f '%{file}')
 
-bin_PROGRAMS        = steamos-bootconf
+bin_PROGRAMS        = holo-bootconf
 pkglibexec_PROGRAMS = steamcl.efi
 noinst_PROGRAMS     = steamcl.elf
 if ENABLE_BASH_COMPLETION
 bashcompletiondir   = $(BASH_COMPLETION_DIR)
 dist_bashcompletion_DATA = bash-completion/steamcl-install \
-                           bash-completion/steamos-bootconf
+                           bash-completion/holo-bootconf
 endif
 dist_pkgdata_DATA   = data/steamcl-version fonts/default.pf2
-dist_sbin_SCRIPTS   = util/steamcl-install util/steamos-bootdebug
+dist_sbin_SCRIPTS   = util/steamcl-install util/holo-bootdebug
 CLEANFILES          = data/steamcl-version fonts/default.pf2
+STEAMOS_ALIASES     = holo-bootconf util/holo-bootdebug
 
 fonts/default.pf2: $(DEFAULT_FONT_FILE)
 	@$(MKDIR_P) $(@D)
@@ -136,7 +137,7 @@ steamcl_elf_LDFLAGS  = $(LDFLAGS) $(EFI_LDFLAGS)
 steamcl_elf_LDADD    = $(EFI_EXTRALIBS)
 steamcl_elf_LINK     = $(LD) $(steamcl_elf_LDFLAGS) -o $@
 
-steamos_bootconf_SOURCES = bootconf/bootconf.c     \
+holo_bootconf_SOURCES =    bootconf/bootconf.c     \
                            bootconf/bootconf.h     \
                            bootconf/config-extra.c \
                            bootconf/config-extra.h \
@@ -148,6 +149,12 @@ steamos_bootconf_SOURCES = bootconf/bootconf.c     \
                            chainloader/partset.h   \
                            chainloader/util.h      \
                            chainloader/err.h
-steamos_bootconf_CFLAGS  = -fno-pic -DNO_EFI_TYPES $(CODING_STANDARDS)
-steamos_bootconf_LDFLAGS = -static
+holo_bootconf_CFLAGS  = -fno-pic -DNO_EFI_TYPES $(CODING_STANDARDS)
+holo_bootconf_LDFLAGS = -static
+
+install-exec-local: ALIAS = $(bindir)/holo-alias
+install-exec-local: IDIR = $(DESTDIR)$(bindir)
+install-exec-local: $(STEAMOS_ALIASES)
+	@(for X in $(^F); \
+	  do ln -svf $(ALIAS) $(IDIR)/$${X//holo-/steamos-}; done)
 
