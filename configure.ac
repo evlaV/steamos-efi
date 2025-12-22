@@ -15,15 +15,15 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-dnl This configure script is complicated, because steamos-efi needs to deal
+dnl This configure script is complicated, because holo-efi needs to deal
 dnl with three potentially different types:
 dnl
 dnl   build  -- the environment for building GRUB
 dnl   host   -- the environment for running utilities
 dnl   target -- the environment for running GRUB
 dnl
-dnl In addition, steamos-efi needs to deal with a platform specification
-dnl which specifies the system running steamos-efi, such as firmware.
+dnl In addition, holo-efi needs to deal with a platform specification
+dnl which specifies the system running holo-efi, such as firmware.
 dnl This is necessary because the target type in autoconf does not
 dnl describe such a system very well.
 dnl
