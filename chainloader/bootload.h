@@ -38,6 +38,8 @@ typedef struct
     EFI_DEVICE_PATH *device_path;
     CHAR16 *loader_path;
     cfg_entry *config;
+    CHAR16 *config_path;
+    EFI_HANDLE config_handle;
     CONST CHAR16 *args;
     struct
     {
