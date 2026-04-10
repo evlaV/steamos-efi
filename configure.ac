@@ -336,7 +336,7 @@ AS_IF([test -n "$_x"],
       [EFI_SECT="${EFI_SECT} $_x"; AC_MSG_RESULT([$_x])],
       [AC_MSG_RESULT([-none-])])
 for x in $EFI_SECT; do EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS -j .$x"; done;
-EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --target=$platform-app-$target_cpu";
+EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --output-target=$platform-app-$target_cpu";
 
 AC_SUBST([EFI_LDSCRIPT])
 AC_SUBST([EFI_LDFLAGS])
