@@ -63,8 +63,10 @@ AS_CASE([$TARGET_CFLAGS],
 # Default HOST_CPPFLAGS
 HOST_CPPFLAGS="$HOST_CPPFLAGS -Wall -W"
 
+target_arch="$target_cpu"
+
 AS_CASE([$target_cpu],
-        [amd64],    [target_cpu=x86_64],
+        [amd64],    [target_cpu=x86_64; target_arch="$target_cpu"],
         [aarch64*], [target_cpu=arm64],
         [x86_64],   [true],
         [AC_MSG_ERROR([Unsupported CPU "$target_cpu"])])
@@ -95,7 +97,7 @@ AS_IF([test x"$with_platform" = x],
                [i386-apple], [platform=efi],
                [x86_64-*],   [platform=efi],
                [ia64-*],     [platform=efi],
-               [arm64-*],    [platform=efi],
+               [arm64-*|aarch64-*],    [platform=efi],
                [AC_MSG_ERROR([unsupported CPU, use --with-platform: "$target_cpu"])])],
       [platform="$with_platform"])
 
@@ -274,7 +276,7 @@ AS_IF([test x"$target_m64" = x1],
 # Some toolchains enable these features by default, but they need
 # registers that aren't set up properly pre-OS start
 AS_CASE([$platform-$target_cpu],
-        [emu-*], [true]
+        [emu-*], [true],
         [*-i386|*-x86_64],
         [TARGET_CFLAGS="$TARGET_CFLAGS -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow"])
 
@@ -309,18 +311,20 @@ AS_CASE(["$target_cpu"-"$platform"],[x86_64-efi],
         [TARGET_CFLAGS="$TARGET_CFLAGS -mno-red-zone"]
         )
 
+GNUEFI_LIBDIR="/usr/lib"
+
 AS_CASE([$with_efilib],
         [gnu],
         [PKG_CHECK_MODULES(GNUEFI, [gnu-efi >= 3.0.18],
-                           [GNUEFI_CFLAGS=$(echo $GNUEFI_CFLAGS)]
-                           [GNUEFI_LIBS=$(echo $GNUEFI_LIBS)])]
-        [PKG_CHECK_VAR(GNUEFI_LIBDIR, [gnu-efi], libdir)]
+                           [GNUEFI_CFLAGS=$(echo $GNUEFI_CFLAGS | sed 's|usr/local|usr|g')]
+                           [GNUEFI_LIBS=$(echo $GNUEFI_LIBS | sed 's|usr/local|usr|g')])]
+        # [PKG_CHECK_VAR(GNUEFI_LIBDIR, [gnu-efi], libdir)]
         [EFI_EXTRALIBS="${GNUEFI_LIBS} -lgnuefi $($TARGET_CC -print-libgcc-file-name)"]
-        [EFI_LDSCRIPT=${GNUEFI_LIBDIR}/elf_${target_cpu}_efi.lds]
-        [EFI_CRTOBJS=${GNUEFI_LIBDIR}/crt0-efi-${target_cpu}.o]
+        [EFI_LDSCRIPT=${GNUEFI_LIBDIR}/elf_${target_arch}_efi.lds]
+        [EFI_CRTOBJS=${GNUEFI_LIBDIR}/crt0-efi-${target_arch}.o]
         [EFI_LDFLAGS="-T ${EFI_LDSCRIPT} -shared -Bsymbolic -nostdlib"]
         [EFI_LDFLAGS="${EFI_LDFLAGS} -L${GNUEFI_LIBDIR} ${EFI_CRTOBJS}"]
-        [EFI_CFLAGS="$GNUEFI_CFLAGS $GNUEFI_CFLAGS/${target_cpu}"]
+        [EFI_CFLAGS="$GNUEFI_CFLAGS $GNUEFI_CFLAGS/${target_arch}"]
         [EFI_CFLAGS="${EFI_CFLAGS} -DGNU_EFI_USE_MS_ABI"]
         [EFI_CFLAGS="$EFI_CFLAGS ${GNUEFI_CFLAGS}/protocol"]
         [EFI_SECT="text sdata data dynamic rodata rel rela rel.\* rel\* rela.\* rela\* areloc reloc"],
@@ -336,7 +340,7 @@ AS_IF([test -n "$_x"],
       [EFI_SECT="${EFI_SECT} $_x"; AC_MSG_RESULT([$_x])],
       [AC_MSG_RESULT([-none-])])
 for x in $EFI_SECT; do EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS -j .$x"; done;
-EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --target=$platform-app-$target_cpu";
+EFI_OBJCOPYARGS="$EFI_OBJCOPYARGS --target=$platform-app-$target_arch";
 
 AC_SUBST([EFI_LDSCRIPT])
 AC_SUBST([EFI_LDFLAGS])

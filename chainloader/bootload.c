@@ -85,8 +85,10 @@ EFI_STATUS valid_efi_binary (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path)
     CHAR8 header[512] = { '0','x','d','e','a','d','b','e','e','f', 0, 0 };
     CONST UINTN hsize = sizeof(header);
     UINTN bytes = hsize;
+#ifndef __aarch64__
     UINTN s;
     UINT16 arch;
+#endif
 
     res = efi_file_open( dir, &bin, path, 0, 0 );
     ERROR_RETURN( res, res, L"open( %s )", path );
@@ -102,6 +104,7 @@ EFI_STATUS valid_efi_binary (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path)
     if( header[ 0 ] != 'M' || header[ 1 ] != 'Z' )
         return EFI_LOAD_ERROR;
 
+#ifndef __aarch64__
     // The uint32 starting at offset 0x3c
     s = * (UINT32 *) &header[ 0x3c ];
 
@@ -116,6 +119,7 @@ EFI_STATUS valid_efi_binary (EFI_FILE_PROTOCOL *dir, CONST CHAR16 *path)
 
     if( arch != EFI_STUB_ARCH )
         return EFI_LOAD_ERROR;
+#endif
 
     return EFI_SUCCESS;
 }
