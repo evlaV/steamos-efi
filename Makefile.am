@@ -59,7 +59,6 @@ endif
 dist_pkgdata_DATA   = data/steamcl-version fonts/default.pf2
 dist_sbin_SCRIPTS   = util/steamcl-install util/holo-bootdebug
 CLEANFILES          = data/steamcl-version fonts/default.pf2
-STEAMOS_ALIASES     = holo-bootconf util/holo-bootdebug
 
 fonts/default.pf2: $(DEFAULT_FONT_FILE)
 	@$(MKDIR_P) $(@D)
@@ -151,10 +150,4 @@ holo_bootconf_SOURCES =    bootconf/bootconf.c     \
                            chainloader/err.h
 holo_bootconf_CFLAGS  = -fno-pic -DNO_EFI_TYPES $(CODING_STANDARDS)
 holo_bootconf_LDFLAGS = -static
-
-install-exec-local: ALIAS = $(bindir)/holo-alias
-install-exec-local: IDIR = $(DESTDIR)$(bindir)
-install-exec-local: $(STEAMOS_ALIASES)
-	@(for X in $(^F); \
-	  do ln -svf $(ALIAS) $(IDIR)/$${X//holo-/steamos-}; done)
 
