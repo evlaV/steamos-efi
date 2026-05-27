@@ -327,7 +327,6 @@ gfx_convert_bitmap (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
         return EFI_SUCCESS;
 
     UINT32 bbuf_offset = (y_offset * bbuf_width) + x_offset;
-    UINT32 set_count = 0;
 
     for( UINT32 j = 0; j < height && bbuf_offset < bbuf->len; j++ )
     {
@@ -341,7 +340,6 @@ gfx_convert_bitmap (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
             if( nth_bit_is_set( src, (j * width) + i ) )
             {
                 bbuf->data[ bbuf_offset ] = pixel;
-                set_count++;
             }
             else
             {
