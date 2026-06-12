@@ -623,6 +623,8 @@ static CHAR16 * find_image_name_by_partuuid (EFI_FILE_PROTOCOL *root,
                 {
                     DEBUG_LOG( "partset %s has no efi uuid",
                                name );
+                    efi_free( buf );
+                    efi_file_close( setdata );
                     continue;
                 }
 
