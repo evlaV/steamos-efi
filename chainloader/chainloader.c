@@ -145,7 +145,7 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
     res = get_protocol_handles( &fs_guid, &filesystems, &count );
     ERROR_JUMP( res, cleanup, L"get_fs_handles" );
 
-    DEBUG_LOG("enumerating EFI filesystems");
+    DEBUG_LOG("enumerating %d EFI filesystems", count);
     for( int i = 0; i < (int)count; i++ )
     {
         EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fs = NULL;

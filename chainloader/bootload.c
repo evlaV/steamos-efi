@@ -618,7 +618,14 @@ static CHAR16 * find_image_name_by_partuuid (EFI_FILE_PROTOCOL *root,
                   get_partset_value (buf, size, (CONST CHAR8 *)"efi");
 
                 if (!partset_efi_uuid)
+                {
+                    DEBUG_LOG( "partset %s has no efi uuid",
+                               name );
                     continue;
+                }
+
+                DEBUG_LOG( "partset %s efi=%a",
+                           name, partset_efi_uuid );
 
                 // does this partset's efi uuid  match the current efi uuid:
                 if( strcmpa( partset_efi_uuid, id ) == 0 )
@@ -626,10 +633,22 @@ static CHAR16 * find_image_name_by_partuuid (EFI_FILE_PROTOCOL *root,
 
                 efi_free( buf );
             }
+            else
+            {
+                DEBUG_LOG( "failed to read partset %s",
+                           name );
+            }
 
             efi_file_close( setdata );
         }
+        else
+        {
+            DEBUG_LOG( "failed to open partset %s", name );
+        }
     }
+
+    DEBUG_LOG( "result for %a: %s",
+               id, image_ident ?: L"(not found)" );
 
     efi_free( id );
     efi_free( dirent );
@@ -878,7 +897,10 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
     self_file = get_self_file();
 
     if( !self_file )
+    {
+        DEBUG_LOG( "get_self_file() returned NULL" );
         return EFI_NOT_FOUND;
+    }
 
     self_path = device_path_string( self_file );
     conf_path = resolve_path( NEWCONFPATH, self_path, FALSE );
@@ -935,7 +957,10 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
 
         // Don't look at the ESP since we know it can't be a pseudo-EFI
         if( guid_cmp( &esp_guid, &efi_guid ) == 0 )
+        {
+            DEBUG_LOG( "handle #%d skipped (is ESP)", i );
             continue;
+        }
 
         if( restricted )
             if( !on_same_device( restricted, efi_device ) )
@@ -950,7 +975,10 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
         }
 
         if( !os_image_name )
+        {
+            DEBUG_LOG( "handle #%d: no matching partset entry", i );
             continue;
+        }
 
         // If we got this far then the partsets file gave us an OS image name
         // so this is may be a bootable pseudo-EFI whose config is at:
