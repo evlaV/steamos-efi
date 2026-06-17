@@ -126,6 +126,8 @@ typedef struct
     EFI_DEVICE_PATH *device_path;
     CHAR16 *loader;
     cfg_entry *cfg;
+    CHAR16 *cfg_path;
+    EFI_HANDLE cfg_handle;
     CHAR16 *label;
     EFI_GUID uuid;
     UINT64 at;
@@ -163,6 +165,7 @@ typedef struct
 
 #define COPY_FOUND(src,dst) \
     ({ dst.cfg         = src.cfg;         \
+       dst.cfg_path    = src.cfg_path;    \
        dst.partition   = src.partition;   \
        dst.loader      = src.loader;      \
        dst.device_path = src.device_path; \
@@ -171,7 +174,8 @@ typedef struct
        dst.disabled    = src.disabled;    \
        dst.boot_time   = src.boot_time;   \
        dst.tries       = src.tries;       \
-       dst.at          = src.at;          })
+       dst.at          = src.at;          \
+       dst.cfg_handle  = src.cfg_handle;  })
 
 static UINTN swap_cfgs (found_cfg *f, UINTN a, UINTN b)
 {
@@ -851,6 +855,122 @@ static CHAR16 *boot_label (CHAR16 *cfg_path, const UINTN prefix_len)
     return label;
 }
 
+static UINTN save_cfg_item (cfg_entry *cfg, EFI_FILE_PROTOCOL *cffile)
+{
+    static CHAR8 line[4096] = { 0 };
+    UINTN bytes = 0;
+    UINTN uval;
+    const CHAR8 *sval;
+
+    switch( cfg->type )
+    {
+      case cfg_end:
+        return 0;
+
+      case cfg_bool:
+        uval = cfg->value.number.u ? 1 : 0;
+        bytes = sprintf_a( line, sizeof(line), "%a: %lu\n",
+                           cfg->name, uval );
+        break;
+
+      case cfg_uint:
+      case cfg_stamp:
+        uval = cfg->value.number.u;
+        bytes = sprintf_a( line, sizeof(line), "%a: %lu\n",
+                           cfg->name, uval );
+        break;
+
+      default:
+        sval = (CHAR8 *)cfg->value.string.bytes ?: (CHAR8 *)"";
+        bytes = sprintf_a( line, sizeof(line), "%a: %a\n",
+                           cfg->name, sval );
+    }
+
+    return efi_file_write( cffile, line, &bytes ) == EFI_SUCCESS ? bytes : 0;
+}
+
+static EFI_STATUS save_steamenv (cfg_entry *cfg, EFI_FILE_PROTOCOL *cffile)
+{
+    EFI_FILE_INFO *cfinfo = NULL;
+    EFI_STATUS rv = EFI_SUCCESS;
+    UINT64 size = 0;
+    UINTN bufsize = 0;
+
+    if( !cfg )
+        return EFI_SUCCESS;
+
+    if( !cffile )
+        return EFI_NOT_FOUND;
+
+    rv = efi_file_seek( cffile, 0 );
+    if( rv != EFI_SUCCESS )
+        return rv;
+
+    rv = efi_file_stat( cffile, &cfinfo, &bufsize );
+    if( rv != EFI_SUCCESS )
+        goto done;
+
+    for( UINTN i = 0; cfg[i].type != cfg_end; i++ )
+    {
+        UINTN written = save_cfg_item( &cfg[i], cffile );
+        if( !written )
+        {
+            rv = EFI_DEVICE_ERROR;
+            goto done;
+        }
+        size += written;
+    }
+
+    if( size < cfinfo->FileSize )
+    {
+        EFI_GUID info_guid = EFI_FILE_INFO_ID;
+        cfinfo->FileSize = size;
+        rv = uefi_call_wrapper( cffile->SetInfo, 4, cffile, &info_guid, bufsize, cfinfo );
+    }
+
+done:
+    efi_free( cfinfo );
+    return rv;
+}
+
+static EFI_STATUS process_boot_config (bootloader *boot)
+{
+    EFI_STATUS rv = EFI_SUCCESS;
+    EFI_FILE_PROTOCOL *root = NULL;
+    EFI_FILE_PROTOCOL *cffile = NULL;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *fs = NULL;
+    static EFI_GUID fs_guid = SIMPLE_FILE_SYSTEM_PROTOCOL;
+
+    if( !boot || !boot->config || !boot->config_path || !boot->config_handle )
+        return EFI_INVALID_PARAMETER;
+
+    cfg_entry *bc = (cfg_entry *)get_conf_item( boot->config, (CHAR8 *)"boot-attempts" );
+    if( !bc )
+        return EFI_NOT_FOUND;
+
+    bc->value.number.u++;
+    v_msg( L"boot-attempts incremented to %lu\n", bc->value.number.u );
+
+    rv = get_handle_protocol( &boot->config_handle, &fs_guid, (VOID **)&fs );
+    ERROR_JUMP( rv, done, L"No filesystem associated with bootloader" );
+
+    rv = efi_mount( fs, &root );
+    ERROR_JUMP( rv, done, L"Unable to mount bootloader filesystem" );
+
+    rv = efi_file_open( root, &cffile, boot->config_path, EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0 );
+    ERROR_JUMP( rv, unmount, L"Unable to open config file %s", boot->config_path );
+
+    rv = save_steamenv( boot->config, cffile );
+    WARN_STATUS( rv, L"Failed to update boot-attempts counter" );
+    WARN_STATUS( efi_file_close( cffile ), L"Unable to close config file" );
+
+unmount:
+    WARN_STATUS( efi_unmount( &root ), L"Unable to unmount bootloader filesystem" );
+
+done:
+    return rv;
+}
+
 EFI_STATUS find_loaders (EFI_HANDLE *handles,
                          CONST UINTN n_handles,
                          IN OUT bootloader *chosen)
@@ -908,6 +1028,8 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
     chosen->loader_path = NULL;
     chosen->args = NULL;
     chosen->config = NULL;
+    chosen->config_path = NULL;
+    chosen->config_handle = NULL;
 
     for( UINTN i = 0; i < n_handles && j < MAX_BOOTCONFS; i++ )
     {
@@ -962,14 +1084,27 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
 
         // prefer the new config location on /esp
         if( efi_file_exists( esp_root, &cfg_path[0] ) == EFI_SUCCESS )
+        {
             res = parse_config( esp_root, &cfg_path[0], &conf );
+            found[ j ].cfg_path = strdup_w( &cfg_path[ 0 ] );
+            found[ j ].cfg_handle = dh;
+        }
         else if( efi_file_exists( efi_root, OLDCONFPATH ) == EFI_SUCCESS )
+        {
             res = parse_config( efi_root, OLDCONFPATH, &conf );
+            found[ j ].cfg_path = strdup_w( OLDCONFPATH );
+            found[ j ].cfg_handle = handles[ i ];
+        }
         else
             res = EFI_NOT_FOUND;
 
         if( res != EFI_SUCCESS )
+        {
+            efi_free( found[ j ].cfg_path );
+            found[ j ].cfg_path = NULL;
+            free_config( &conf );
             continue;
+        }
 
         // If the config specied an alternate loader path, expand it here:
         const CHAR8 *alt_cfg = get_conf_str( conf, "loader" );
@@ -990,6 +1125,8 @@ EFI_STATUS find_loaders (EFI_HANDLE *handles,
 
         if( !found[ j ].loader )
         {
+            efi_free( found[ j ].cfg_path );
+            found[ j ].cfg_path = NULL;
             free_config( &conf );
             continue;
         }
@@ -1231,8 +1368,11 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         chosen->loader_path = found[ selected ].loader;
         chosen->partition   = found[ selected ].partition;
         chosen->config      = found[ selected ].cfg;
+        chosen->config_path   = found[ selected ].cfg_path;
+        chosen->config_handle = found[ selected ].cfg_handle;
 
         found[ selected ].cfg    = NULL;
+        found[ selected ].cfg_path = NULL;
         found[ selected ].loader = NULL;
 
         DEBUG_LOG("final config selection: #%d", selected );
@@ -1293,6 +1433,7 @@ EFI_STATUS choose_steamos_loader (IN OUT bootloader *chosen)
         for( INTN i = 0; i < (INTN) found_cfg_count; i++ )
         {
             efi_free( found[ i ].loader );
+            efi_free( found[ i ].cfg_path );
             if( found[ i ].label )
                 efi_free( found[ i ].label );
             free_config( &found[ i ].cfg );
@@ -1333,6 +1474,8 @@ EFI_STATUS exec_bootloader (bootloader *boot)
                 (UINT64) &boot->device_path, boot->loader_path );
 
     DEBUG_LOG("loading stage 2 loader to memory");
+    process_boot_config( boot );
+
     res = load_image( dpath, &efi_app );
     ERROR_JUMP( res, unload, L"load-image failed" );
 
