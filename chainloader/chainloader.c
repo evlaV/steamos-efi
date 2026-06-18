@@ -87,6 +87,24 @@ EFI_STATUS reboot_into_firmware (VOID)
     return EFI_SUCCESS;
 }
 
+static VOID connect_block_controllers (VOID)
+{
+    EFI_GUID block_guid = BLOCK_IO_PROTOCOL;
+    EFI_HANDLE *handles = NULL;
+    EFI_STATUS res;
+    UINTN count = 0;
+
+    res = get_protocol_handles( &block_guid, &handles, &count );
+    if( EFI_ERROR( res ) )
+        return;
+
+    DEBUG_LOG("connect_block_controllers: connecting %d handles", count);
+    for( UINTN i = 0; i < count; i++ )
+        uefi_call_wrapper( BS->ConnectController, 4, handles[i], NULL, NULL, TRUE );
+
+    efi_free(handles);
+}
+
 EFI_STATUS
 efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
 {
@@ -142,10 +160,17 @@ efi_main (EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *sys_table)
         DEBUG_LOG("done");
     }
 
+    // Some UEFI implementations may skip binding drivers, including the FAT
+    // filesystem driver, when running with fastboot enabled. This results in
+    // handles to the filesystems not being returned and boot failing. Bind all
+    // block handles to drivers, which should trigger binding of filesystems.
+    DEBUG_LOG("ensure all block controllers connected");
+    connect_block_controllers();
+
     res = get_protocol_handles( &fs_guid, &filesystems, &count );
     ERROR_JUMP( res, cleanup, L"get_fs_handles" );
 
-    DEBUG_LOG("enumerating EFI filesystems");
+    DEBUG_LOG("enumerating %d EFI filesystems", count);
     for( int i = 0; i < (int)count; i++ )
     {
         EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fs = NULL;
