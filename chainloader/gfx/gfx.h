@@ -44,6 +44,8 @@ gfx_get_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx,
 
 EFI_STATUS gfx_dump_modes (VOID);
 
+VOID gfx_connect_controllers (VOID);
+
 EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx_get_interface (VOID);
 
 UINT32     gfx_max_mode (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx);

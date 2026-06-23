@@ -60,6 +60,22 @@ triplet_to_fbfmt (EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx, UINT32 triplet)
     }
 }
 
+VOID gfx_connect_controllers (VOID)
+{
+    EFI_GUID guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    EFI_HANDLE *handles = NULL;
+    UINTN count = 0;
+
+    if( EFI_ERROR( get_protocol_handles( &guid, &handles, &count ) ) )
+        return;
+
+    DEBUG_LOG( "gfx_connect_controllers: connecting %d handles", count );
+    for( UINTN i = 0; i < count; i++ )
+        uefi_call_wrapper( BS->ConnectController, 4, handles[i], NULL, NULL, TRUE );
+
+    efi_free( handles );
+}
+
 EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx_get_interface (VOID)
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL *gfx = NULL;
