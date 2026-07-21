@@ -58,6 +58,7 @@ installpath=EFI/$distrib
 flags= # comma separated list of flags
 force_extra_removable=0
 force_removable_efiboot=0
+no_efi=0
 
 restricted=0
 verbose=0
@@ -94,6 +95,12 @@ entry if needed.
 
     Create an EFI boot entry, even if the chainloader is booted from a removable
     medium.
+
+--no-efi
+
+    Avoid EFI boot entry operations. Ensure that EFI operations are not
+    performed, this is typically used in situations where an image is being
+    created and we do not want to add anything to the hosts EFI environment.
 "
 
 warn () { echo "$@" >&2; }
@@ -545,6 +552,12 @@ need_new_efi_boot_entry ()
     local epath=$2
     local euuid=${3:-}
 
+    # We have been passed "--no-efi", we don't need a new EFI boot entry.
+    if [ $no_efi -eq 1 ]
+    then
+        return 1
+    fi
+
     # _not_ forcing removable efi boot and we are actually on a removable medium:
     if [ $force_removable_efiboot -eq 0 ] && os_on_removable_media
     then
@@ -587,6 +600,11 @@ do
             shift
             ;;
 
+        (--no-efi)
+            no_efi=1
+            shift
+            ;;
+
         (--help|-h)
             echo "$usage_message"
             exit 0
@@ -619,7 +637,10 @@ done
 
 find_esp
 echo "ESP $esp_fs $esp_uuid on $esp_dev GPT#$esp_part ${esp_partuuid:+PARTUUID=$esp_partuuid} ($esp_mount)"
-find_boot_entries $distrib $esp_dev $esp_part
+if [ $no_efi -eq 0 ]
+then
+    find_boot_entries $distrib $esp_dev $esp_part
+fi
 
 # now some diagnotics:
 esp_csum_ok=0  # does the binary's checksum match the manifest's?

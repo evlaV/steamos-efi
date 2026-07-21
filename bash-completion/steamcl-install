@@ -40,6 +40,6 @@ _steamcl-install()
             ;;
     esac
 
-    COMPREPLY=($(compgen -W "--flags --force-extra-removable --force-removable-efiboot" -- "$cur"))
+    COMPREPLY=($(compgen -W "--flags --force-extra-removable --force-removable-efiboot --no-efi" -- "$cur"))
 } &&
 complete -F _steamcl-install steamcl-install
