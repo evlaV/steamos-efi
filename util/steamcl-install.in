@@ -467,8 +467,9 @@ add_boot_entry ()
 check_boot_path ()
 {
     local part=$1
-    local uuid=$2
-    local path=${3,,}
+    local uuid=${2:-}
+    local path=${3:-}
+    path=${path,,}
     local bootid=
     local entry=
     local epart=
@@ -490,7 +491,7 @@ check_boot_path ()
         euuid=${entry#*GPT,}
         euuid=${euuid%%,*}
 
-        if [ ${euuid:-00000000-0000-0000-0000-000000000000} != ${uuid} ]
+        if [ "${euuid:-00000000-0000-0000-0000-000000000000}" != "${uuid}" ]
         then
             continue
         fi
@@ -571,7 +572,7 @@ need_new_efi_boot_entry ()
     fi
 
     # efi boot entry already exists
-    if check_boot_path $epart $euuid $epath
+    if check_boot_path "$epart" "$euuid" "$epath"
     then
         return 1
     fi
@@ -661,7 +662,7 @@ then
     esp_checksum=$manifest_checksum
 fi
 
-if ! need_new_efi_boot_entry $esp_part $installpath/steamcl.efi $esp_partuuid
+if ! need_new_efi_boot_entry "$esp_part" "$installpath/steamcl.efi" "$esp_partuuid"
 then
     esp_boot_ok=1
 fi
