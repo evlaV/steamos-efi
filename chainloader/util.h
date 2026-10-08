@@ -54,13 +54,19 @@
 
 #define MAXFSNAMLEN 200
 
+#ifdef __aarch64__
+#define EFI_SUFFIX L"aa64"
+#else
+#define EFI_SUFFIX L"x64"
+#endif
+
 #define OLDCONFPATH  L"SteamOS\\bootconf"
 #define NEWCONFPATH  L"\\SteamOS\\conf"
 #define EFIDIR       L"\\EFI"
 
-#define GRUBLDR     EFIDIR L"\\steamos\\grubx64.efi"
-#define SYSTEMDLDR  EFIDIR L"\\SYSTEMD\\SYSTEMD-BOOTX64.EFI"
-#define DEFAULTLDR  EFIDIR L"\\Boot\\bootx64.efi"
+#define GRUBLDR     EFIDIR L"\\steamos\\grub" EFI_SUFFIX L".efi"
+#define SYSTEMDLDR  EFIDIR L"\\SYSTEMD\\SYSTEMD-BOOT" EFI_SUFFIX L".EFI"
+#define DEFAULTLDR  EFIDIR L"\\Boot\\boot" EFI_SUFFIX L".efi"
 #define STEAMOSLDR  GRUBLDR
 #define CHAINLDR    EFIDIR L"\\Shell\\steamcl.efi"
 
