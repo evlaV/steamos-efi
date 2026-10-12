@@ -50,6 +50,8 @@ EFI_STATUS parse_config (EFI_FILE_PROTOCOL *root_dir,
                          CHAR16 *path,
                          cfg_entry **config);
 
+EFI_STATUS save_steamenv (cfg_entry *cfg, EFI_FILE_PROTOCOL *cffile);
+
 VOID dump_config (cfg_entry *config);
 #else
 const char *_cts (cfg_entry_type t);

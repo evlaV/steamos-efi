@@ -315,6 +315,15 @@ allocfail:
     return EFI_OUT_OF_RESOURCES;
 }
 
+EFI_STATUS efi_file_set_stat (EFI_FILE_PROTOCOL *fh,
+                              IN EFI_FILE_INFO *info,
+                              IN UINTN bufsize)
+{
+    EFI_GUID info_guid = EFI_FILE_INFO_ID;
+
+    return uefi_call_wrapper( fh->SetInfo, 4, fh, &info_guid, bufsize, info );
+}
+
 // compare the newest of { ctime, mtime } for two files
 // return -1 if file a is older,
 // 0 if the same age,

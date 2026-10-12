@@ -139,7 +139,7 @@ EFI_STATUS set_config_from_data (cfg_entry *cfg, CHAR8 *data, UINTN size)
     UINTN found = 0;
 
     for( CHAR8 *c = data; c < data + size; c++ )
-        if( *c == '\n')
+        if( *c == '\n' || *c == '\r' )
             *c = (CHAR8) 0;
 
     for( CHAR8 *c = data; c < data + size; c++ )
@@ -236,6 +236,83 @@ allocfail:
     efi_free( *config );
     *config = NULL;
     return EFI_OUT_OF_RESOURCES;
+}
+
+static UINTN save_conf_item (cfg_entry *cfg, EFI_FILE_PROTOCOL *cffile)
+{
+    static CHAR8 line[4096] = { 0 };
+    UINTN bytes = 0;
+    UINTN uval;
+    const CHAR8 *sval;
+
+    switch( cfg->type )
+    {
+      case cfg_end:
+        return 0;
+
+      case cfg_bool:
+        uval = cfg->value.number.u ? 1 : 0;
+        bytes = sprintf_a( line, sizeof(line), "%a: %lu\n",
+                           cfg->name, uval );
+        break;
+
+      case cfg_uint:
+      case cfg_stamp:
+        uval = cfg->value.number.u;
+        bytes = sprintf_a( line, sizeof(line), "%a: %lu\n",
+                           cfg->name, uval );
+        break;
+
+      default:
+        sval = (CHAR8 *)cfg->value.string.bytes ?: (CHAR8 *)"";
+        bytes = sprintf_a( line, sizeof(line), "%a: %a\n",
+                           cfg->name, sval );
+    }
+
+    return efi_file_write( cffile, line, &bytes ) == EFI_SUCCESS ? bytes : 0;
+}
+
+EFI_STATUS save_steamenv (cfg_entry *cfg, EFI_FILE_PROTOCOL *cffile)
+{
+    EFI_FILE_INFO *cfinfo = NULL;
+    EFI_STATUS rv = EFI_SUCCESS;
+    UINT64 size = 0;
+    UINTN bufsize = 0;
+
+    if( !cfg )
+        return EFI_SUCCESS;
+
+    if( !cffile )
+        return EFI_NOT_FOUND;
+
+    rv = efi_file_seek( cffile, 0 );
+    if( rv != EFI_SUCCESS )
+        return rv;
+
+    rv = efi_file_stat( cffile, &cfinfo, &bufsize );
+    if( rv != EFI_SUCCESS )
+        goto done;
+
+    for( UINTN i = 0; cfg[i].type != cfg_end; i++ )
+    {
+        UINTN written = save_conf_item( &cfg[i], cffile );
+        if( !written )
+        {
+            rv = EFI_DEVICE_ERROR;
+            goto done;
+        }
+        size += written;
+    }
+
+    if( size < cfinfo->FileSize )
+    {
+        cfinfo->FileSize = size;
+        rv = efi_file_set_stat( cffile, cfinfo, bufsize );
+    }
+
+done:
+    efi_free( cfinfo );
+    return rv;
 }
 #endif
 
